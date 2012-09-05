@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:nb="http://schemas.android.com/apk/res/com.nobullshit.grapher"
+    android:id="@+id/scrollView1"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" >
+	<LinearLayout
+	    android:layout_width="match_parent"
+	    android:layout_height="wrap_content"
+	    android:orientation="vertical" >
+	
+	    <com.nobullshit.grapher.LineGraph
+	        android:id="@+id/graph1"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        nb:drawArrows="true"
+	        nb:drawGrid="false"
+	        nb:drawGridX="true"
+	        nb:drawGridY="true"
+	        nb:tickLabelSize="10sp"/>
+	
+	    <com.nobullshit.grapher.LineGraph
+	        android:id="@+id/graph2"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:padding="5mm"
+	        nb:zeroBaseY="false"
+	        nb:drawGridX="false"
+	        nb:tickLabelSize="9sp" />
+	
+	    <com.nobullshit.grapher.LineGraph
+	        android:id="@+id/graph3"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:padding="10mm"
+	        nb:drawGridY="false"
+	        nb:tickLabelSize="14sp"  />
+	</LinearLayout>
+</ScrollView>

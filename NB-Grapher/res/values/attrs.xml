@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="Graph">
+		<attr name="axisPadding" format="dimension"/>
+		<attr name="axisPaddingLeft" format="dimension"/>
+		<attr name="axisPaddingTop" format="dimension"/>
+		<attr name="axisPaddingRight" format="dimension"/>
+		<attr name="axisPaddingBottom" format="dimension"/>
+		<attr name="axisStrokeWidth" format="dimension"/>>
+		<attr name="gridStrokeWidth" format="dimension"/>
+		<attr name="tickLabelSize" format="dimension"/>
+		<attr name="drawGrid" format="boolean"/>
+		<attr name="drawGridX" format="boolean"/>
+		<attr name="drawGridY" format="boolean"/>
+		<attr name="drawArrows" format="boolean"/>
+		<attr name="drawTickLabelsX" format="boolean"/>
+		<attr name="drawTickLabelsY" format="boolean"/>
+		<attr name="zeroBaseY" format="boolean"/>
+	</declare-styleable>
+</resources>
