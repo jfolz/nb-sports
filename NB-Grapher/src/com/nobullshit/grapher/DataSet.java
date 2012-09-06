@@ -4,9 +4,11 @@ import java.util.Arrays;
 import java.util.Comparator;
 
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Rect;
+import android.graphics.RectF;
 
 public class DataSet {
 	private double[] Xs;
@@ -15,15 +17,11 @@ public class DataSet {
 	private int color;
 	private CharSequence label;
 	private Bounds bounds;
-	private int drawIndex;
+	private RectF[] rects;
 	
-	public DataSet(double[] Xs, double[] Ys, int color, CharSequence label) {
-		assert Ys != null;
-		assert Xs == null || Xs.length == Ys.length;
-		
+	public DataSet(double[] Xs, double[] Ys, int color, CharSequence label) {		
 		this.color = color;
 		this.label = label;
-		this.graph = new Path();
 		
 		if(Xs != null) {
 			int[] sorted = new Argsort(Xs).argsort();
@@ -73,25 +71,7 @@ public class DataSet {
 	public int getColor() {
 		return color;
 	}
-	
-	public double nextX() {
-		return Xs[drawIndex];
-	}
 
-	public double nextY() {
-		return Ys[drawIndex++];
-	}
-
-	public void resetDrawing() {
-		drawIndex = 0;
-	}
-
-	public void draw(Canvas canvas, Paint paint, Rect clip) {
-		graph.offset(clip.left, clip.bottom);
-		paint.setColor(color);
-		canvas.drawPath(graph, paint);
-	}
-	
 	public void createGraph(Transform T) {
 		graph = new Path();
 		
@@ -113,6 +93,43 @@ public class DataSet {
 		}
 	}
 	
+	public void createBars(Transform T, Rect clip, double[] allXs, int nSeries, int seriesIndex, float barSpacing) {
+		if(rects == null || rects.length != Xs.length) rects = new RectF[Xs.length];
+		
+		float cellWidth = (float) clip.width() / allXs.length;
+		float cellPadding = cellWidth / (nSeries+1) / 2;
+		float barWidth = (cellWidth - 2*cellPadding - (nSeries-1)*barSpacing) / nSeries;
+		
+		int j=0;
+		float left, top;
+		double x;
+		for(int i=0; i<allXs.length; i++) {
+			x = allXs[i];
+			if(j<Xs.length && Xs[j] == x) {
+				left = clip.left
+						+ cellWidth*i
+						+ cellPadding
+						+ barWidth*seriesIndex
+						+ barSpacing*seriesIndex;
+				top = (float) -T.transformY(Ys[j]) + clip.bottom;
+				rects[j++] = new RectF(left, top, left+barWidth, clip.bottom);
+			}
+		}
+	}
+	
+	public void draw(Canvas canvas, Paint paint, Rect clip, float alpha) {
+		if(graph != null) {
+			graph.offset(clip.left, clip.bottom);
+			paint.setColor(color);
+			canvas.drawPath(graph, paint);
+		}
+		if(rects != null) {
+			int a = Math.round(Color.alpha(color) * alpha);
+			paint.setColor((color & 0x00FFFFFF) | (a << 24));
+			for(RectF rect: rects) canvas.drawRect(rect, paint);
+		}
+	}
+
 	private class Argsort implements Comparator<Integer> {
 		private double[] toSort;
 		

@@ -9,10 +9,13 @@
 		<attr name="axisStrokeWidth" format="dimension"/>>
 		<attr name="gridStrokeWidth" format="dimension"/>
 		<attr name="tickLabelSize" format="dimension"/>
+		<attr name="drawAxis" format="boolean"/>
+		<attr name="drawAxisX" format="boolean"/>
+		<attr name="drawAxisY" format="boolean"/>
+		<attr name="drawArrows" format="boolean"/>
 		<attr name="drawGrid" format="boolean"/>
 		<attr name="drawGridX" format="boolean"/>
 		<attr name="drawGridY" format="boolean"/>
-		<attr name="drawArrows" format="boolean"/>
 		<attr name="drawTickLabelsX" format="boolean"/>
 		<attr name="drawTickLabelsY" format="boolean"/>
 		<attr name="zeroBaseY" format="boolean"/>

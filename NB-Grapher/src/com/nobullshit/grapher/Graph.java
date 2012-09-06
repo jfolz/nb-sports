@@ -18,6 +18,7 @@ import android.view.View;
 
 import com.nobullshit.text.DecimalFormatter;
 import com.nobullshit.text.Formatter;
+import com.nobullshit.text.StringUtil;
 
 public abstract class Graph extends View {
 	protected static int[] allowedFractions = new int[] {1,2,4,5,8,10};
@@ -27,6 +28,8 @@ public abstract class Graph extends View {
 	
 	protected boolean zeroBaseY = true;
 	protected boolean drawArrows = true;
+	protected boolean drawAxisY = true;
+	protected boolean drawAxisX = true;
 	protected boolean drawGridY = true;
 	protected boolean drawGridX = true;
 	protected boolean drawTickLabelsX = true;
@@ -37,6 +40,7 @@ public abstract class Graph extends View {
 	protected String[] yTickLabels;
 	protected float[] xTickPositions;
 	protected float[] yTickPositions;
+	protected float alpha = 1;
 
 	protected Formatter xTickFormatter = null;
 	protected Formatter yTickFormatter = null;
@@ -58,7 +62,6 @@ public abstract class Graph extends View {
 	
 	// dynamic
 	protected Transform T;
-	protected Colors colors;
 	protected List<DataSet> series;
 
 	public Graph(Context context) {
@@ -78,7 +81,6 @@ public abstract class Graph extends View {
 		clip = new Rect();
 		padding = new Rect();
 		T = new Transform();
-		colors = new Colors();
 		
 		series = new ArrayList<DataSet>();
 		xTicks = new double[0];
@@ -138,9 +140,13 @@ public abstract class Graph extends View {
 			
 			drawArrows = arr.getBoolean(R.styleable.Graph_drawArrows, drawArrows);
 			
-			boolean drawGrid = arr.getBoolean(R.styleable.Graph_drawGrid, true);
+			boolean drawGrid = arr.getBoolean(R.styleable.Graph_drawGrid, drawAxisX);
 			drawGridX = arr.getBoolean(R.styleable.Graph_drawGridX, drawGrid);
 			drawGridY = arr.getBoolean(R.styleable.Graph_drawGridY, drawGrid);
+			
+			boolean drawAxis = arr.getBoolean(R.styleable.Graph_drawAxis, drawAxisX);
+			drawAxisX = arr.getBoolean(R.styleable.Graph_drawAxisX, drawAxis);
+			drawAxisY = arr.getBoolean(R.styleable.Graph_drawAxisY, drawAxis);
 			
 			zeroBaseY = arr.getBoolean(R.styleable.Graph_zeroBaseY, zeroBaseY);
 			axpad = arr.getDimensionPixelSize(R.styleable.Graph_axisPadding, axpad);
@@ -150,7 +156,7 @@ public abstract class Graph extends View {
 			axisPadding.bottom = arr.getDimensionPixelSize(R.styleable.Graph_axisPaddingBottom, axpad);
 		
 			labelPaint.setTextSize(arr.getDimension(R.styleable.Graph_tickLabelSize, labelPaint.getTextSize()));
-			graphPaint.setAlpha((int) Math.round(arr.getFloat(R.styleable.Graph_graphOpacity, 1)*255));
+			alpha = arr.getFloat(R.styleable.Graph_graphOpacity, alpha);
 		}
 		
 		Rect temp = new Rect();
@@ -167,16 +173,20 @@ public abstract class Graph extends View {
 	}
 	
 	public void addSeries(double[] Xs, double[] Ys) {
-		addSeries(Xs, Ys, colors.next(), "Series "+(series.size()+1));
+		addSeries(Xs, Ys, Colors.get(series.size()), StringUtil.trim("Series "+(series.size()+1)));
 	}
 	
 	public void addSeries(double[] Xs, double[] Ys, CharSequence label) {
-		addSeries(Xs, Ys, colors.next(), label);
+		addSeries(Xs, Ys, Colors.get(series.size()), label);
 	}
 
 	public void addSeries(double[] Xs, double[] Ys, int color, CharSequence label) {
+		if(Ys == null)
+			throw new IllegalArgumentException("Ys must not be null");
+		if(Xs != null && Xs.length != Ys.length)
+			throw new IllegalArgumentException("Xs and Ys must be same length");
+		
 		series.add(new DataSet(Xs,Ys,color,label));
-		prepareForDrawing();
 	}
 	
 	public void refresh() {
@@ -364,17 +374,19 @@ public abstract class Graph extends View {
 	}
 	
 	protected void drawAxis(Canvas canvas) {
-		canvas.drawLine(clip.left, clip.bottom,
-				clip.right, clip.bottom, axisPaint);
-		canvas.drawLine(clip.left, clip.bottom,
-				clip.left, clip.top, axisPaint);
-	
+		if(drawAxisX) canvas.drawLine(
+				clip.left, clip.bottom, clip.right, clip.bottom, axisPaint);
+		if(drawAxisY) canvas.drawLine(
+				clip.left, clip.bottom, clip.left, clip.top, axisPaint);
 		if(drawArrows) {
-			triangleX.offset(clip.right, clip.bottom);
-			canvas.drawPath(triangleX, axisPaint);
-		
-			triangleY.offset(clip.left, clip.top);
-			canvas.drawPath(triangleY, axisPaint);
+			if(drawAxisX) {
+				triangleX.offset(clip.right, clip.bottom);
+				canvas.drawPath(triangleX, axisPaint);
+			}
+			if(drawAxisY) {
+				triangleY.offset(clip.left, clip.top);
+				canvas.drawPath(triangleY, axisPaint);
+			}
 		}
 	}
 

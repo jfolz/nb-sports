@@ -9,7 +9,7 @@ public class SimpleFormatter implements Formatter {
 	}
 
 	public String format(double val) {
-		return String.format(format, val);
+		return StringUtil.trim(String.format(format, val));
 	}
 
 }

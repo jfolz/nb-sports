@@ -20,7 +20,7 @@ public class DecimalFormatter implements Formatter {
 	}
 
 	public String format(double val) {
-		return f.format(val);
+		return StringUtil.trim(f.format(val));
 	}
 
 }

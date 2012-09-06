@@ -11,11 +11,7 @@ import android.util.AttributeSet;
 public class BarGraph extends Graph {
 	
 	protected double[] allXs;
-	protected float cellPadding;
 	protected float barSpacing = 2;
-	protected float cellWidth;
-	protected float barWidth;
-	protected float alpha;
 
 	public BarGraph(Context context) {
 		this(context, null, 0);
@@ -35,7 +31,6 @@ public class BarGraph extends Graph {
 		}
 		
 		graphPaint.setStyle(Style.FILL);
-		alpha = graphPaint.getAlpha() / 255.0F;
 	}
 	
 	@Override
@@ -84,47 +79,32 @@ public class BarGraph extends Graph {
 	protected void measureDataSetX() {
 		int n = series.size();
 		if(allXs != null && n > 0) {
-			cellWidth = (float) clip.width() / allXs.length;
-			cellPadding = cellWidth / (n+1) / 2;
-			barWidth = (cellWidth - 2*cellPadding - (n-1)*barSpacing) / n;
 			xTicks = allXs;
 		}
 	}
 	
 	@Override
-	protected void transformTicksX() {		
-		if(xTicks.length != xTickPositions.length) xTickPositions = new float[xTicks.length];
-		for(int i=0; i<xTicks.length; i++)
-			xTickPositions[i] = clip.left + (float) (cellWidth * (i + .5));
+	protected void transformTicksX() {
+		int n = series.size();
+		if(n > 0) {
+			if(xTicks.length != xTickPositions.length) xTickPositions = new float[xTicks.length];
+			float cellWidth = (float) clip.width() / allXs.length;
+			for(int i=0; i<xTicks.length; i++)
+				xTickPositions[i] = clip.left + (float) (cellWidth * (i + .5));
+		}
 	}
 	
 	@Override
-	protected void createGraphPath() {}
+	protected void createGraphPath() {
+		int n = series.size();
+		if(n > 0 && allXs != null) {
+			for(int i=0; i<n; i++) series.get(i).createBars(T, clip, allXs, n, i, barSpacing);
+		}
+	}
 
 	@Override
 	protected void drawGraph(Canvas canvas) {
-		int n = series.size();
-		if(n > 0 && allXs != null) {
-			int i, ix;
-			double x;
-			float left, right, top, bottom = clip.bottom;
-			DataSet d;
-			for(ix=0; ix<allXs.length; ix++) {
-				x = allXs[ix];
-				for(i=0; i<n; i++) {
-					d = series.get(i);
-					if(d.nextX() == x) {
-						left = clip.left + cellWidth*ix + cellPadding + barWidth*i + barSpacing*i;
-						right = left + barWidth;
-						top = (float) -T.transformY(d.nextY()) + clip.bottom;
-						graphPaint.setColor(d.getColor());
-						graphPaint.setAlpha(Math.round(graphPaint.getAlpha() * alpha));
-						canvas.drawRect(left, top, right, bottom, graphPaint);
-					}
-				}
-			}
-			for(i=0; i<n; i++) series.get(i).resetDrawing();
-		}
+		for(DataSet d: series) d.draw(canvas, graphPaint, clip, alpha);
 	}
 
 }

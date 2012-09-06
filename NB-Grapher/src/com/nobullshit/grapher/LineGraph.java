@@ -20,7 +20,7 @@ public class LineGraph extends Graph {
 
 	@Override
 	protected void drawGraph(Canvas canvas) {
-		for(DataSet d: series) d.draw(canvas, graphPaint, clip);
+		for(DataSet d: series) d.draw(canvas, graphPaint, clip, alpha);
 	}
 
 }

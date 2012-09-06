@@ -6,7 +6,7 @@ import android.graphics.Color;
 
 public class Colors implements Iterator<Integer> {
 	
-	int[] colors = new int[] {
+	static int[] colors = new int[] {
 			Color.rgb(51, 181, 229),
 			Color.rgb(170,102,204),
 			Color.rgb(153,204,0),
@@ -20,6 +20,10 @@ public class Colors implements Iterator<Integer> {
 	};
 		
 	int index;
+	
+	public static int get(int i) {
+		return colors[i];
+	}
 	
 	public Colors() {
 		index = 0;

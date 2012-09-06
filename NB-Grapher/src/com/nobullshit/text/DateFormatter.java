@@ -11,7 +11,7 @@ public class DateFormatter implements Formatter {
 	}
 
 	public String format(double val) {
-		return DateFormat.format(format, (long) Math.round(val)).toString();
+		return StringUtil.trim(DateFormat.format(format, (long) Math.round(val)).toString());
 	}
 
 }

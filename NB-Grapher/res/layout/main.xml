@@ -13,12 +13,13 @@
 	        android:id="@+id/graph1"
 	        android:layout_width="match_parent"
 	        android:layout_height="wrap_content"
-	        nb:drawArrows="true"
+	        nb:drawArrows="false"
 	        nb:drawGrid="false"
 	        nb:drawGridY="true"
 	        nb:tickLabelSize="10sp"
 	        nb:graphOpacity=".75"
-	        nb:barSpacing="2dp"/>
+	        nb:barSpacing="2dp"
+	        nb:drawAxisY="false" />
 	
 	    <com.nobullshit.grapher.LineGraph
 	        android:id="@+id/graph2"
