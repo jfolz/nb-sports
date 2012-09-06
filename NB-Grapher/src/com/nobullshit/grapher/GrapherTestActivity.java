@@ -2,14 +2,18 @@ package com.nobullshit.grapher;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.view.View;
+import android.view.View.OnClickListener;
 
-public class GrapherTestActivity extends Activity {
+public class GrapherTestActivity extends Activity implements OnClickListener {
+	
+	int n = 5;
+	
     /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.main);
-        int n = 5;
         double off = Math.random();
         double[] Ys = new double[n];
         double[] Xs = new double[n];
@@ -32,6 +36,9 @@ public class GrapherTestActivity extends Activity {
         g = (Graph) findViewById(R.id.graph3);
         g.addSeries(null, Ys);
         g.refresh();
+
+        findViewById(R.id.graph4).setOnClickListener(this);
+        findViewById(R.id.graph5).setOnClickListener(this);
     }
     
     private void addSeries(Graph g, int n, double[] Xs) {
@@ -42,4 +49,22 @@ public class GrapherTestActivity extends Activity {
         }
         g.addSeries(Xs, Ys);
     }
+
+	public void onClick(View v) {
+		Graph g;
+		double[] Xs = new double[n];
+		double[] Ys = new double[n];
+		double off = Math.random();
+        for(int i=0; i<Ys.length; i++) {
+        	Ys[i] = Math.random()+off;
+        	Xs[i] = i;
+        }
+		switch(v.getId()) {
+			case R.id.graph4:
+			case R.id.graph5:
+				g = (Graph) v;
+				g.addSeries(Xs,Ys);
+				g.refresh();
+		}
+	}
 }

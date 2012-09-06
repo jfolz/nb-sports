@@ -22,7 +22,7 @@ public class Colors implements Iterator<Integer> {
 	int index;
 	
 	public static int get(int i) {
-		return colors[i];
+		return colors[i%colors.length];
 	}
 	
 	public Colors() {

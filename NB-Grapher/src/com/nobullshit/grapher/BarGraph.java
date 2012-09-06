@@ -35,6 +35,11 @@ public class BarGraph extends Graph {
 	
 	@Override
 	public void addSeries(double[] Xs, double[] Ys, int color, CharSequence label) {
+		if(Ys == null)
+			throw new IllegalArgumentException("Ys must not be null");
+		if(Xs != null && Xs.length != Ys.length)
+			throw new IllegalArgumentException("Xs and Ys must be same length");
+		
 		double[] nxs, temp;
 		// copy supplied Xs and sort them or create dummies
 		if(Xs == null) {
@@ -71,8 +76,8 @@ public class BarGraph extends Graph {
 			allXs = new double[n];
 			System.arraycopy(temp, 0, allXs, 0, n);
 		}
-		// proceed with normal operation
-		super.addSeries(Xs, Ys, color, label);
+		
+		series.add(new BarSeries(Xs, Ys, color, label));
 	}
 	
 	@Override
@@ -95,16 +100,16 @@ public class BarGraph extends Graph {
 	}
 	
 	@Override
-	protected void createGraphPath() {
+	protected void createGraph() {
 		int n = series.size();
 		if(n > 0 && allXs != null) {
-			for(int i=0; i<n; i++) series.get(i).createBars(T, clip, allXs, n, i, barSpacing);
+			for(int i=0; i<n; i++) ((BarSeries) series.get(i)).createBars(T, clip, allXs, n, i, barSpacing);
 		}
 	}
 
 	@Override
 	protected void drawGraph(Canvas canvas) {
-		for(DataSet d: series) d.draw(canvas, graphPaint, clip, alpha);
+		for(Series d: series) d.draw(canvas, graphPaint, clip, alpha);
 	}
 
 }

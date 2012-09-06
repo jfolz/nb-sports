@@ -62,7 +62,7 @@ public abstract class Graph extends View {
 	
 	// dynamic
 	protected Transform T;
-	protected List<DataSet> series;
+	protected List<Series> series;
 
 	public Graph(Context context) {
 		this(context, null, 0);
@@ -82,7 +82,7 @@ public abstract class Graph extends View {
 		padding = new Rect();
 		T = new Transform();
 		
-		series = new ArrayList<DataSet>();
+		series = new ArrayList<Series>();
 		xTicks = new double[0];
 		yTicks = new double[0];
 		xTickFormatter = new DecimalFormatter("0.00");
@@ -140,7 +140,7 @@ public abstract class Graph extends View {
 			
 			drawArrows = arr.getBoolean(R.styleable.Graph_drawArrows, drawArrows);
 			
-			boolean drawGrid = arr.getBoolean(R.styleable.Graph_drawGrid, drawAxisX);
+			boolean drawGrid = arr.getBoolean(R.styleable.Graph_drawGrid, drawGridX);
 			drawGridX = arr.getBoolean(R.styleable.Graph_drawGridX, drawGrid);
 			drawGridY = arr.getBoolean(R.styleable.Graph_drawGridY, drawGrid);
 			
@@ -180,14 +180,7 @@ public abstract class Graph extends View {
 		addSeries(Xs, Ys, Colors.get(series.size()), label);
 	}
 
-	public void addSeries(double[] Xs, double[] Ys, int color, CharSequence label) {
-		if(Ys == null)
-			throw new IllegalArgumentException("Ys must not be null");
-		if(Xs != null && Xs.length != Ys.length)
-			throw new IllegalArgumentException("Xs and Ys must be same length");
-		
-		series.add(new DataSet(Xs,Ys,color,label));
-	}
+	public abstract void addSeries(double[] Xs, double[] Ys, int color, CharSequence label);
 	
 	public void refresh() {
 		prepareForDrawing();
@@ -196,6 +189,9 @@ public abstract class Graph extends View {
 	
 	protected void prepareForDrawing() {
 		if(getWidth() > 0 && getHeight() > 0) {
+			triangleX.offset(-clip.right, -clip.bottom);
+			triangleY.offset(-clip.left, -clip.top);
+			
 			T.reset();
 			
 			clip.top = axisPadding.top + getPaddingTop();
@@ -213,7 +209,10 @@ public abstract class Graph extends View {
 
 			transformTicksY();
 			transformTicksX();			
-			createGraphPath();
+			createGraph();
+			
+			triangleX.offset(clip.right, clip.bottom);
+			triangleY.offset(clip.left, clip.top);
 		}
 	}
 	
@@ -224,7 +223,7 @@ public abstract class Graph extends View {
 		if(series.size() > 0) {
 			min = Float.MAX_VALUE;
 			max = Float.MIN_VALUE;
-			for(DataSet d: series) {
+			for(Series d: series) {
 				Bounds b = d.getBounds();
 				min = Math.min(min, b.miny);
 				max = Math.max(max, b.maxy);
@@ -245,7 +244,7 @@ public abstract class Graph extends View {
 		if(series.size() > 0) {
 			min = Float.MAX_VALUE;
 			max = Float.MIN_VALUE;
-			for(DataSet d: series) {
+			for(Series d: series) {
 				Bounds b = d.getBounds();
 				min = Math.min(min, b.minx);
 				max = Math.max(max, b.maxx);
@@ -312,9 +311,7 @@ public abstract class Graph extends View {
 		for(double x: xTicks) xTickPositions[i++] = (float) (clip.left + T.transformX(x));
 	}
 
-	protected void createGraphPath() {
-		for(DataSet d: series) d.createGraph(T);
-	}
+	protected abstract void createGraph();
 
 	@Override
 	protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
@@ -379,17 +376,13 @@ public abstract class Graph extends View {
 		if(drawAxisY) canvas.drawLine(
 				clip.left, clip.bottom, clip.left, clip.top, axisPaint);
 		if(drawArrows) {
-			if(drawAxisX) {
-				triangleX.offset(clip.right, clip.bottom);
-				canvas.drawPath(triangleX, axisPaint);
-			}
-			if(drawAxisY) {
-				triangleY.offset(clip.left, clip.top);
-				canvas.drawPath(triangleY, axisPaint);
-			}
+			if(drawAxisX) canvas.drawPath(triangleX, axisPaint);
+			if(drawAxisY) canvas.drawPath(triangleY, axisPaint);
 		}
 	}
 
-	protected abstract void drawGraph(Canvas canvas);
+	protected void drawGraph(Canvas canvas) {
+		for(Series d: series) d.draw(canvas, graphPaint, clip, alpha);
+	}
 
 }

@@ -37,5 +37,15 @@
 	        android:padding="10mm"
 	        nb:drawGridY="false"
 	        nb:tickLabelSize="14sp"  />
+	
+	    <com.nobullshit.grapher.BarGraph
+	        android:id="@+id/graph4"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"/>
+	
+	    <com.nobullshit.grapher.LineGraph
+	        android:id="@+id/graph5"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content" />
 	</LinearLayout>
 </ScrollView>
