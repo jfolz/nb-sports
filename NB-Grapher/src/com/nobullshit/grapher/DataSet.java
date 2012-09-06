@@ -15,6 +15,7 @@ public class DataSet {
 	private int color;
 	private CharSequence label;
 	private Bounds bounds;
+	private int drawIndex;
 	
 	public DataSet(double[] Xs, double[] Ys, int color, CharSequence label) {
 		assert Ys != null;
@@ -69,6 +70,22 @@ public class DataSet {
 		return label;
 	}
 	
+	public int getColor() {
+		return color;
+	}
+	
+	public double nextX() {
+		return Xs[drawIndex];
+	}
+
+	public double nextY() {
+		return Ys[drawIndex++];
+	}
+
+	public void resetDrawing() {
+		drawIndex = 0;
+	}
+
 	public void draw(Canvas canvas, Paint paint, Rect clip) {
 		graph.offset(clip.left, clip.bottom);
 		paint.setColor(color);

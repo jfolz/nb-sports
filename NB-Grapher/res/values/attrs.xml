@@ -16,5 +16,9 @@
 		<attr name="drawTickLabelsX" format="boolean"/>
 		<attr name="drawTickLabelsY" format="boolean"/>
 		<attr name="zeroBaseY" format="boolean"/>
+		<attr name="graphOpacity" format="float"/>
+	</declare-styleable>
+    <declare-styleable name="BarGraph">
+		<attr name="barSpacing" format="dimension"/>
 	</declare-styleable>
 </resources>

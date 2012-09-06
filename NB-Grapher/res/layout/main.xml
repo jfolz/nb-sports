@@ -1,23 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:nb="http://schemas.android.com/apk/res/com.nobullshit.grapher"
+    xmlns:nb="http://schemas.android.com/apk/res-auto"
     android:id="@+id/scrollView1"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" >
+    android:layout_height="match_parent">
 	<LinearLayout
 	    android:layout_width="match_parent"
 	    android:layout_height="wrap_content"
 	    android:orientation="vertical" >
 	
-	    <com.nobullshit.grapher.LineGraph
+	    <com.nobullshit.grapher.BarGraph
 	        android:id="@+id/graph1"
 	        android:layout_width="match_parent"
 	        android:layout_height="wrap_content"
 	        nb:drawArrows="true"
 	        nb:drawGrid="false"
-	        nb:drawGridX="true"
 	        nb:drawGridY="true"
-	        nb:tickLabelSize="10sp"/>
+	        nb:tickLabelSize="10sp"
+	        nb:graphOpacity=".75"
+	        nb:barSpacing="2dp"/>
 	
 	    <com.nobullshit.grapher.LineGraph
 	        android:id="@+id/graph2"

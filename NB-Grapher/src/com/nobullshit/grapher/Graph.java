@@ -1,9 +1,7 @@
 package com.nobullshit.grapher;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import android.content.Context;
 import android.content.res.Resources;
@@ -35,10 +33,10 @@ public abstract class Graph extends View {
 	protected boolean drawTickLabelsY = true;
 	protected double[] xTicks;
 	protected double[] yTicks;
-	protected Map<Double,String> xTickLabels;
-	protected Map<Double,String> yTickLabels;
-	protected Map<Double,Float> xTickPositions;
-	protected Map<Double,Float> yTickPositions;
+	protected String[] xTickLabels;
+	protected String[] yTickLabels;
+	protected float[] xTickPositions;
+	protected float[] yTickPositions;
 
 	protected Formatter xTickFormatter = null;
 	protected Formatter yTickFormatter = null;
@@ -73,6 +71,8 @@ public abstract class Graph extends View {
 
 	public Graph(Context context, AttributeSet attrs, int defStyle) {
 		super(context, attrs, defStyle);
+		System.out.println(isHardwareAccelerated());
+		System.out.println(getLayerType());
 		
 		axisPadding = new Rect();
 		clip = new Rect();
@@ -85,10 +85,10 @@ public abstract class Graph extends View {
 		yTicks = new double[0];
 		xTickFormatter = new DecimalFormatter("0.00");
 		yTickFormatter = new DecimalFormatter("0.00");
-		xTickLabels = new HashMap<Double, String>();
-		yTickLabels = new HashMap<Double, String>();
-		xTickPositions = new HashMap<Double, Float>();
-		yTickPositions = new HashMap<Double, Float>();
+		xTickLabels = new String[0];
+		yTickLabels = new String[0];
+		xTickPositions = new float[0];
+		yTickPositions = new float[0];
 		
 		Resources r = getResources();
 		ratio = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, r.getDisplayMetrics());
@@ -150,6 +150,7 @@ public abstract class Graph extends View {
 			axisPadding.bottom = arr.getDimensionPixelSize(R.styleable.Graph_axisPaddingBottom, axpad);
 		
 			labelPaint.setTextSize(arr.getDimension(R.styleable.Graph_tickLabelSize, labelPaint.getTextSize()));
+			graphPaint.setAlpha((int) Math.round(arr.getFloat(R.styleable.Graph_graphOpacity, 1)*255));
 		}
 		
 		Rect temp = new Rect();
@@ -199,8 +200,9 @@ public abstract class Graph extends View {
 			
 			measureDataSetX();
 			calculateTickLabelsX();
-			
-			transformTicks();			
+
+			transformTicksY();
+			transformTicksX();			
 			createGraphPath();
 		}
 	}
@@ -271,33 +273,35 @@ public abstract class Graph extends View {
 		double val;
 		String s;
 		Rect temp = new Rect();
-		yTickLabels.clear();
+		if(yTicks.length != yTickLabels.length) yTickLabels = new String[yTicks.length];
 		for(int i=0; i<yTicks.length; i++) {
 			val = yTicks[i];
 			s = yTickFormatter.format(val);
 			labelPaint.getTextBounds(s, 0, s.length(), temp);
 			padding.left = Math.max(padding.left,temp.right);
-			yTickLabels.put(val, s);
-			yTicks[i] = val;
+			yTickLabels[i] = s;
 		}
 	}
 
 	protected void calculateTickLabelsX() {
-		xTickLabels.clear();
+		if(xTicks.length != xTickLabels.length) xTickLabels = new String[xTicks.length];
 		for(int i=0; i<xTicks.length; i++) {
-			xTickLabels.put(xTicks[i], xTickFormatter.format(xTicks[i]));
+			xTickLabels[i] = xTickFormatter.format(xTicks[i]);
 		}
 	}
 	
-	protected void transformTicks() {		
-		xTickPositions.clear();
-		yTickPositions.clear();
-
-		for(double x: xTicks) xTickPositions.put(x, (float) (T.transformX(x) + clip.left));
-		for(double y: yTicks) yTickPositions.put(y, (float) (clip.bottom - T.transformY(y)));
-		
+	protected void transformTicksY() {
+		if(yTicks.length != yTickPositions.length) yTickPositions = new float[yTicks.length];
+		int i=0;
+		for(double y: yTicks) yTickPositions[i++] = (float) (clip.bottom - T.transformY(y));
 	}
 	
+	protected void transformTicksX() {
+		if(xTicks.length != xTickPositions.length) xTickPositions = new float[xTicks.length];
+		int i=0;
+		for(double x: xTicks) xTickPositions[i++] = (float) (clip.left + T.transformX(x));
+	}
+
 	protected void createGraphPath() {
 		for(DataSet d: series) d.createGraph(T);
 	}
@@ -327,34 +331,32 @@ public abstract class Graph extends View {
 	}
 	
 	protected void drawGrid(Canvas canvas) {
-		float x, y;
-		if(drawGridX && xTicks != null) for(double xt: xTicks) {
-			x = xTickPositions.get(xt);
+		if(drawGridX && xTicks != null) for(float x: xTickPositions) {
 			canvas.drawLine(x, clip.top, x, clip.bottom, gridPaint);
 		}
-		if(drawGridY && yTicks != null) for(double yt: yTicks) {
-			y = yTickPositions.get(yt);
+		if(drawGridY && yTicks != null) for(float y: yTickPositions) {
 			canvas.drawLine(clip.left, y, clip.right, y, gridPaint);
 		}
 	}
 	
 	protected void drawTickLabels(Canvas canvas) {
 		float x, y;
+		int i;
 		String s;
 		if(drawTickLabelsX) {
 			labelPaint.setTextAlign(Align.CENTER);
-			for(double xt: xTicks) {
-				s = xTickLabels.get(xt);
-				x = xTickPositions.get(xt);
+			for(i=0; i<xTicks.length; i++) {
+				s = xTickLabels[i];
+				x = xTickPositions[i];
 				if(x+labelPaint.measureText(s)/2 <= clip.right+axisPadding.right)
 					canvas.drawText(s, x, clip.bottom+axisPadding.bottom+2*halfTextHeight, labelPaint);
 			}
 		}
 		if(drawTickLabelsY) {
 			labelPaint.setTextAlign(Align.RIGHT);
-			for(double yt: yTicks) {
-				s = yTickLabels.get(yt);
-				y = yTickPositions.get(yt);
+			for(i=0; i<yTicks.length; i++) {
+				s = yTickLabels[i];
+				y = yTickPositions[i];
 				if(y-halfTextHeight >= clip.top-axisPadding.top)
 					canvas.drawText(s, clip.left-axisPadding.left, y+halfTextHeight, labelPaint);
 			}
