@@ -74,8 +74,6 @@ public abstract class Graph extends View {
 
 	public Graph(Context context, AttributeSet attrs, int defStyle) {
 		super(context, attrs, defStyle);
-		System.out.println(isHardwareAccelerated());
-		System.out.println(getLayerType());
 		
 		axisPadding = new Rect();
 		clip = new Rect();

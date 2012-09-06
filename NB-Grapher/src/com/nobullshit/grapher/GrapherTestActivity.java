@@ -31,7 +31,7 @@ public class GrapherTestActivity extends Activity implements OnClickListener {
         addSeries(g,n,Xs2);
         g.refresh();
         g = (Graph) findViewById(R.id.graph2);
-        g.addSeries(null, Ys);
+        addSeriesRandom(g, 20);
         g.refresh();
         g = (Graph) findViewById(R.id.graph3);
         g.addSeries(null, Ys);
@@ -46,6 +46,16 @@ public class GrapherTestActivity extends Activity implements OnClickListener {
         double[] Ys = new double[n];
         for(int i=0; i<Ys.length; i++) {
         	Ys[i] = Math.random()+off;
+        }
+        g.addSeries(Xs, Ys);
+    }
+    
+    private void addSeriesRandom(Graph g, int n) {
+    	double[] Xs = new double[n];
+        double[] Ys = new double[n];
+        for(int i=0; i<Ys.length; i++) {
+        	Xs[i] = Math.random();
+        	Ys[i] = Math.random();
         }
         g.addSeries(Xs, Ys);
     }

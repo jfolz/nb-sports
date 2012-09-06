@@ -21,14 +21,15 @@
 	        nb:barSpacing="2dp"
 	        nb:drawAxisY="false" />
 	
-	    <com.nobullshit.grapher.LineGraph
+	    <com.nobullshit.grapher.ScatterGraph
 	        android:id="@+id/graph2"
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
 	        android:padding="5mm"
-	        nb:zeroBaseY="false"
-	        nb:drawGridX="false"
-	        nb:tickLabelSize="9sp" />
+	        nb:zeroBaseY="true"
+	        nb:drawArrows="false"
+	        nb:tickLabelSize="9sp"
+	        nb:pointSize="2mm" />
 	
 	    <com.nobullshit.grapher.LineGraph
 	        android:id="@+id/graph3"

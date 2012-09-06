@@ -6,7 +6,7 @@
 		<attr name="axisPaddingTop" format="dimension"/>
 		<attr name="axisPaddingRight" format="dimension"/>
 		<attr name="axisPaddingBottom" format="dimension"/>
-		<attr name="axisStrokeWidth" format="dimension"/>>
+		<attr name="axisStrokeWidth" format="dimension"/>
 		<attr name="gridStrokeWidth" format="dimension"/>
 		<attr name="tickLabelSize" format="dimension"/>
 		<attr name="drawAxis" format="boolean"/>
@@ -20,6 +20,12 @@
 		<attr name="drawTickLabelsY" format="boolean"/>
 		<attr name="zeroBaseY" format="boolean"/>
 		<attr name="graphOpacity" format="float"/>
+	</declare-styleable>
+    <declare-styleable name="LineGraph">
+		<attr name="graphStrokeWidth" format="dimension"/>
+	</declare-styleable>
+    <declare-styleable name="ScatterGraph">
+		<attr name="pointSize" format="dimension"/>
 	</declare-styleable>
     <declare-styleable name="BarGraph">
 		<attr name="barSpacing" format="dimension"/>
