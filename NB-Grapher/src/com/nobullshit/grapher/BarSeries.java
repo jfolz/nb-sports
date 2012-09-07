@@ -34,7 +34,7 @@ public class BarSeries extends Series {
 						+ barWidth*seriesIndex
 						+ barSpacing*seriesIndex;
 				top = (float) -T.transformY(Ys[j++]) + clip.bottom;
-				rects.addRect(left, top, left+barWidth, clip.bottom,Path.Direction.CW);
+				rects.addRect(left, top, left+barWidth, clip.bottom, Path.Direction.CW);
 				rects.close();
 			}
 		}
@@ -47,26 +47,6 @@ public class BarSeries extends Series {
 			paint.setColor((color & 0x00FFFFFF) | (a << 24));
 			paint.setStyle(Style.FILL);
 			canvas.drawPath(rects, paint);
-		}
-	}
-	
-	public void draw(Canvas canvas, Paint paint, Rect clip, Paint.Style style, float alpha, float fillAlpha) {
-		if(rects != null) {	
-			int a;
-			
-			if(style == Paint.Style.FILL || style == Paint.Style.FILL_AND_STROKE) {
-				a = Math.round(Color.alpha(color) * fillAlpha);
-				paint.setColor((color & 0x00FFFFFF) | (a << 24));
-				paint.setStyle(Style.FILL);
-				canvas.drawPath(rects, paint);
-			}
-
-			if(style == Paint.Style.STROKE || style == Paint.Style.FILL_AND_STROKE) {
-				a = Math.round(Color.alpha(color) * alpha);
-				paint.setColor((color & 0x00FFFFFF) | (a << 24));
-				paint.setStyle(Style.STROKE);
-				canvas.drawPath(rects, paint);
-			}
 		}
 	}
 }

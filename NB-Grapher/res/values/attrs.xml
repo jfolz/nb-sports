@@ -28,12 +28,6 @@
 		<attr name="symbolSize" format="dimension"/>
 	</declare-styleable>
     <declare-styleable name="BarGraph">
-        <attr name="barStyle">
-		    <enum name="fill" value="0" />
-		    <enum name="stroke" value="1" />
-		    <enum name="fillstroke" value="2" />
-		</attr>
 		<attr name="barSpacing" format="dimension"/>
-		<attr name="fillOpacity" format="float"/>
 	</declare-styleable>
 </resources>

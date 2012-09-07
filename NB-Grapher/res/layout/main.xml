@@ -44,9 +44,6 @@
 	        android:id="@+id/graph4"
 	        android:layout_width="match_parent"
 	        android:layout_height="wrap_content"
-	        nb:barStyle="fillstroke"
-	        nb:fillOpacity=".5"
-	        nb:graphStrokeWidth="1dp"
 	        nb:barSpacing="3dp"
 	        nb:drawGridX="false"/>
 	

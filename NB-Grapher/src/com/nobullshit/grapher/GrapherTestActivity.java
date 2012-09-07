@@ -1,5 +1,7 @@
 package com.nobullshit.grapher;
 
+import com.nobullshit.text.DateFormatter;
+
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;
@@ -15,21 +17,16 @@ public class GrapherTestActivity extends Activity implements OnClickListener {
         super.onCreate(savedInstanceState);
         
         setContentView(R.layout.main);
-        double off = Math.random();
-        double[] Ys = new double[n];
-        double[] Xs = new double[n];
+        double[] Xs = new double[100];
         double[] Xs2 = new double[n];
-        for(int i=0; i<Ys.length; i++) {
-        	Ys[i] = Math.random()+off;
-        	Xs[i] = Math.random()*10000 + System.currentTimeMillis();
-        	Xs2[i] = i;
-        }
+    	for(int i=0; i<Xs2.length; i++) Xs2[i] = i;
+        for(int i=0; i<Xs.length; i++) Xs[i] = Math.random()*10000 + System.currentTimeMillis();
         Graph g = (Graph) findViewById(R.id.graph1);
-        g.addSeries(Xs2, Ys);
+        addSeries(g,Xs2);
         Xs2[3] = 3.5;
-        addSeries(g,n,Xs2);
+        addSeries(g,Xs2);
         Xs2[4] = 4.5;
-        addSeries(g,n,Xs2);
+        addSeries(g,Xs2);
         g.refresh();
         ScatterGraph g2 = (ScatterGraph) findViewById(R.id.graph2);
         addSeriesRandom(g2, 20, Symbols.SYMBOL_TRIANGLE);
@@ -37,18 +34,20 @@ public class GrapherTestActivity extends Activity implements OnClickListener {
         addSeriesRandom(g2, 20, Symbols.SYMBOL_PLUS);
         g.refresh();
         g = (Graph) findViewById(R.id.graph3);
-        g.addSeries(null, Ys);
+        addSeries(g,Xs);
+        addSeries(g,Xs);
+        g.setXTickFormatter(new DateFormatter("s"));
         g.refresh();
 
         findViewById(R.id.graph4).setOnClickListener(this);
         findViewById(R.id.graph5).setOnClickListener(this);
     }
     
-    private void addSeries(Graph g, int n, double[] Xs) {
-        double off = Math.random();
-        double[] Ys = new double[n];
+    private void addSeries(Graph g, double[] Xs) {
+        double off = Math.random()/2;
+        double[] Ys = new double[Xs.length];
         for(int i=0; i<Ys.length; i++) {
-        	Ys[i] = Math.random()+off;
+        	Ys[i] = Math.random()/2+off;
         }
         g.addSeries(Xs, Ys);
     }
