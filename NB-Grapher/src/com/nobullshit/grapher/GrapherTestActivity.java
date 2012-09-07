@@ -13,6 +13,7 @@ public class GrapherTestActivity extends Activity implements OnClickListener {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
         setContentView(R.layout.main);
         double off = Math.random();
         double[] Ys = new double[n];
@@ -30,8 +31,10 @@ public class GrapherTestActivity extends Activity implements OnClickListener {
         Xs2[4] = 4.5;
         addSeries(g,n,Xs2);
         g.refresh();
-        g = (Graph) findViewById(R.id.graph2);
-        addSeriesRandom(g, 20);
+        ScatterGraph g2 = (ScatterGraph) findViewById(R.id.graph2);
+        addSeriesRandom(g2, 20, Symbols.SYMBOL_TRIANGLE);
+        addSeriesRandom(g2, 20, Symbols.SYMBOL_CROSS);
+        addSeriesRandom(g2, 20, Symbols.SYMBOL_PLUS);
         g.refresh();
         g = (Graph) findViewById(R.id.graph3);
         g.addSeries(null, Ys);
@@ -50,14 +53,14 @@ public class GrapherTestActivity extends Activity implements OnClickListener {
         g.addSeries(Xs, Ys);
     }
     
-    private void addSeriesRandom(Graph g, int n) {
+    private void addSeriesRandom(ScatterGraph g, int n, int symbol) {
     	double[] Xs = new double[n];
         double[] Ys = new double[n];
         for(int i=0; i<Ys.length; i++) {
         	Xs[i] = Math.random();
         	Ys[i] = Math.random();
         }
-        g.addSeries(Xs, Ys);
+        g.addSeries(Xs, Ys, 0, null, symbol);
     }
 
 	public void onClick(View v) {

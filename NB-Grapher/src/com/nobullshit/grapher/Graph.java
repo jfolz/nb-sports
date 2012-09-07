@@ -25,6 +25,7 @@ public abstract class Graph extends View {
 	protected static int defaultAxisPadding = 6;
 	protected static int defaultAxisStrokeWidth = 2;
 	protected static float defaultGridStrokeWidth = 0.5F;
+	protected static float defaultGraphStrokeWidth = 2;
 	
 	protected boolean zeroBaseY = true;
 	protected boolean drawArrows = true;
@@ -94,6 +95,7 @@ public abstract class Graph extends View {
 		ratio = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, r.getDisplayMetrics());
 		int axisStrokeWidth = Math.round(defaultAxisStrokeWidth * ratio);
 		int gridStrokeWidth = Math.round(defaultGridStrokeWidth * ratio);
+		float graphStrokeWidth = defaultGraphStrokeWidth * ratio;
 		int axpad = Math.round(defaultAxisPadding * ratio);
 		
 		axisPaint = new Paint();
@@ -110,6 +112,7 @@ public abstract class Graph extends View {
 		graphPaint.setStyle(Paint.Style.STROKE);
 		graphPaint.setStrokeCap(Paint.Cap.BUTT);
 		graphPaint.setStrokeJoin(Paint.Join.ROUND);
+		graphPaint.setStrokeWidth(graphStrokeWidth);
 		
 		gridPaint = new Paint();
 		gridPaint.setARGB(128, 51, 181, 229);
@@ -152,7 +155,9 @@ public abstract class Graph extends View {
 			axisPadding.left = arr.getDimensionPixelSize(R.styleable.Graph_axisPaddingLeft, axpad);
 			axisPadding.right = arr.getDimensionPixelSize(R.styleable.Graph_axisPaddingRight, axpad);
 			axisPadding.bottom = arr.getDimensionPixelSize(R.styleable.Graph_axisPaddingBottom, axpad);
-		
+			
+			graphPaint.setStrokeWidth(arr.getDimension(R.styleable.Graph_graphStrokeWidth, graphStrokeWidth));
+
 			labelPaint.setTextSize(arr.getDimension(R.styleable.Graph_tickLabelSize, labelPaint.getTextSize()));
 			alpha = arr.getFloat(R.styleable.Graph_graphOpacity, alpha);
 		}

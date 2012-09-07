@@ -29,7 +29,8 @@
 	        nb:zeroBaseY="true"
 	        nb:drawArrows="false"
 	        nb:tickLabelSize="9sp"
-	        nb:pointSize="2mm" />
+	        nb:symbolSize="2mm"
+	        nb:graphStrokeWidth="1dp" />
 	
 	    <com.nobullshit.grapher.LineGraph
 	        android:id="@+id/graph3"
@@ -42,7 +43,12 @@
 	    <com.nobullshit.grapher.BarGraph
 	        android:id="@+id/graph4"
 	        android:layout_width="match_parent"
-	        android:layout_height="wrap_content"/>
+	        android:layout_height="wrap_content"
+	        nb:barStyle="fillstroke"
+	        nb:fillOpacity=".5"
+	        nb:graphStrokeWidth="1dp"
+	        nb:barSpacing="3dp"
+	        nb:drawGridX="false"/>
 	
 	    <com.nobullshit.grapher.LineGraph
 	        android:id="@+id/graph5"

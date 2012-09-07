@@ -5,13 +5,15 @@ import java.util.Arrays;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
-import android.graphics.Paint.Style;
+import android.graphics.Paint;
 import android.util.AttributeSet;
 
 public class BarGraph extends Graph {
 	
 	protected double[] allXs;
 	protected float barSpacing = 2;
+	protected float fillAlpha = 1;
+	protected Paint.Style style = Paint.Style.FILL;
 
 	public BarGraph(Context context) {
 		this(context, null, 0);
@@ -28,9 +30,15 @@ public class BarGraph extends Graph {
 		if(attrs != null) {
 			TypedArray arr = context.obtainStyledAttributes(attrs, R.styleable.BarGraph);
 			barSpacing = arr.getDimension(R.styleable.BarGraph_barSpacing, barSpacing);
+			fillAlpha = arr.getFloat(R.styleable.BarGraph_fillOpacity, fillAlpha);
+			switch(arr.getInteger(R.styleable.BarGraph_barStyle, 0)) {
+			case 0: style= Paint.Style.FILL; break;
+			case 1: style= Paint.Style.STROKE; break;
+			case 2: style= Paint.Style.FILL_AND_STROKE; break;
+			}
 		}
 		
-		graphPaint.setStyle(Style.FILL);
+		graphPaint.setStrokeJoin(Paint.Join.BEVEL);
 	}
 	
 	@Override
@@ -109,7 +117,7 @@ public class BarGraph extends Graph {
 
 	@Override
 	protected void drawGraph(Canvas canvas) {
-		for(Series d: series) d.draw(canvas, graphPaint, clip, alpha);
+		for(Series d: series) ((BarSeries)d).draw(canvas, graphPaint, clip, style, alpha, fillAlpha);
 	}
 
 }

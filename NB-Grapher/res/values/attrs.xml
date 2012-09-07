@@ -20,14 +20,20 @@
 		<attr name="drawTickLabelsY" format="boolean"/>
 		<attr name="zeroBaseY" format="boolean"/>
 		<attr name="graphOpacity" format="float"/>
-	</declare-styleable>
-    <declare-styleable name="LineGraph">
 		<attr name="graphStrokeWidth" format="dimension"/>
 	</declare-styleable>
+    <declare-styleable name="LineGraph">
+	</declare-styleable>
     <declare-styleable name="ScatterGraph">
-		<attr name="pointSize" format="dimension"/>
+		<attr name="symbolSize" format="dimension"/>
 	</declare-styleable>
     <declare-styleable name="BarGraph">
+        <attr name="barStyle">
+		    <enum name="fill" value="0" />
+		    <enum name="stroke" value="1" />
+		    <enum name="fillstroke" value="2" />
+		</attr>
 		<attr name="barSpacing" format="dimension"/>
+		<attr name="fillOpacity" format="float"/>
 	</declare-styleable>
 </resources>
