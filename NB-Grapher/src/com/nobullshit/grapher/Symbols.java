@@ -51,7 +51,19 @@ public class Symbols {
 		return p;
 	}
 	
-	public static Path triangle(float size) {
+	public static Path triangleUp(float size) {
+		Path p = new Path();
+		float a = size / 2F;
+		float h = FloatMath.sqrt(3) * a / 3F;
+		p.moveTo(-a, h);
+		p.lineTo(0, -2*h);
+		p.lineTo(a, h);
+		p.lineTo(-a, h);
+		p.close();
+		return p;
+	}
+	
+	public static Path triangleDown(float size) {
 		Path p = new Path();
 		float a = size / 2F;
 		float h = FloatMath.sqrt(3) * a / 3F;
@@ -59,6 +71,30 @@ public class Symbols {
 		p.lineTo(0, 2*h);
 		p.lineTo(a, -h);
 		p.lineTo(-a, -h);
+		p.close();
+		return p;
+	}
+	
+	public static Path triangleLeft(float size) {
+		Path p = new Path();
+		float a = size / 2F;
+		float h = FloatMath.sqrt(3) * a / 3F;
+		p.moveTo(h, -a);
+		p.lineTo(-2*h,0);
+		p.lineTo(h, a);
+		p.lineTo(h, -a);
+		p.close();
+		return p;
+	}
+	
+	public static Path triangleRight(float size) {
+		Path p = new Path();
+		float a = size / 2F;
+		float h = FloatMath.sqrt(3) * a / 3F;
+		p.moveTo(-h, -a);
+		p.lineTo(2*h,0);
+		p.lineTo(-h, a);
+		p.lineTo(-h, -a);
 		p.close();
 		return p;
 	}

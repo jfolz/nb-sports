@@ -31,6 +31,8 @@ public abstract class Graph extends View {
 	protected boolean drawArrows = true;
 	protected boolean drawAxisY = true;
 	protected boolean drawAxisX = true;
+	protected boolean drawAxisAtZeroY = false;
+	protected boolean drawAxisAtZeroX = false;
 	protected boolean drawGridY = true;
 	protected boolean drawGridX = true;
 	protected boolean drawTickLabelsX = true;
@@ -118,20 +120,6 @@ public abstract class Graph extends View {
 		gridPaint.setARGB(128, 51, 181, 229);
 		gridPaint.setStrokeWidth(gridStrokeWidth);
 		gridPaint.setStrokeCap(Paint.Cap.BUTT);
-
-		float depth = Math.round(4.5*ratio);
-		float girth = Math.round(5*ratio);
-		triangleX = new Path();
-		triangleX.moveTo(-depth, -girth);
-		triangleX.lineTo(-depth, girth);
-		triangleX.lineTo(depth, 0);
-		triangleX.lineTo(-depth, -girth);
-		
-		triangleY = new Path();
-		triangleY.moveTo(-girth, depth);
-		triangleY.lineTo(girth, depth);
-		triangleY.lineTo(0, -depth);
-		triangleY.lineTo(-girth, depth);
 		
 		if(attrs != null) {
 			TypedArray arr = context.obtainStyledAttributes(attrs, R.styleable.Graph);
@@ -148,6 +136,10 @@ public abstract class Graph extends View {
 			boolean drawAxis = arr.getBoolean(R.styleable.Graph_drawAxis, drawAxisX);
 			drawAxisX = arr.getBoolean(R.styleable.Graph_drawAxisX, drawAxis);
 			drawAxisY = arr.getBoolean(R.styleable.Graph_drawAxisY, drawAxis);
+			
+			boolean drawAxisAtZero = arr.getBoolean(R.styleable.Graph_drawAxisAtZero, drawAxisAtZeroX);
+			drawAxisAtZeroX = arr.getBoolean(R.styleable.Graph_drawAxisAtZeroX, drawAxisAtZero);
+			drawAxisAtZeroY = arr.getBoolean(R.styleable.Graph_drawAxisAtZeroY, drawAxisAtZero);
 			
 			zeroBaseY = arr.getBoolean(R.styleable.Graph_zeroBaseY, zeroBaseY);
 			axpad = arr.getDimensionPixelSize(R.styleable.Graph_axisPadding, axpad);
@@ -192,8 +184,6 @@ public abstract class Graph extends View {
 	
 	protected void prepareForDrawing() {
 		if(getWidth() > 0 && getHeight() > 0) {
-			triangleX.offset(-clip.right, -clip.bottom);
-			triangleY.offset(-clip.left, -clip.top);
 			
 			T.reset();
 			
@@ -213,9 +203,7 @@ public abstract class Graph extends View {
 			transformTicksY();
 			transformTicksX();			
 			createGraph();
-			
-			triangleX.offset(clip.right, clip.bottom);
-			triangleY.offset(clip.left, clip.top);
+			createTriangles();
 		}
 	}
 	
@@ -313,6 +301,16 @@ public abstract class Graph extends View {
 		int i=0;
 		for(double x: xTicks) xTickPositions[i++] = (float) (clip.left + T.transformX(x));
 	}
+	
+	protected void createTriangles() {
+		triangleX = Symbols.triangleRight(axisPaint.getStrokeWidth()*5);
+		float off = (float) (drawAxisAtZeroX ? T.transformY(0) : 0);
+		triangleX.offset(clip.right, clip.bottom - off);
+		
+		triangleY = Symbols.triangleUp(axisPaint.getStrokeWidth()*5);
+		off = (float) (drawAxisAtZeroY ? T.transformX(0) : 0);
+		triangleY.offset(clip.left + off, clip.top);
+	}
 
 	protected abstract void createGraph();
 
@@ -374,10 +372,23 @@ public abstract class Graph extends View {
 	}
 	
 	protected void drawAxis(Canvas canvas) {
-		if(drawAxisX) canvas.drawLine(
-				clip.left, clip.bottom, clip.right, clip.bottom, axisPaint);
-		if(drawAxisY) canvas.drawLine(
-				clip.left, clip.bottom, clip.left, clip.top, axisPaint);
+		float off;
+		if(drawAxisX) {
+			off = (float) (drawAxisAtZeroX ? T.transformY(0) : 0);
+			canvas.drawLine(clip.left, 
+					clip.bottom - off, 
+					clip.right, 
+					clip.bottom - off, 
+					axisPaint);
+		}
+		if(drawAxisY) {
+			off = (float) (drawAxisAtZeroY ? T.transformX(0) : 0);
+			canvas.drawLine(clip.left + off, 
+					clip.bottom, 
+					clip.left + off, 
+					clip.top, 
+					axisPaint);
+		}
 		if(drawArrows) {
 			if(drawAxisX) canvas.drawPath(triangleX, axisPaint);
 			if(drawAxisY) canvas.drawPath(triangleY, axisPaint);

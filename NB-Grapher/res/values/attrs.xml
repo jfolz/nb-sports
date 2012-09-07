@@ -12,6 +12,9 @@
 		<attr name="drawAxis" format="boolean"/>
 		<attr name="drawAxisX" format="boolean"/>
 		<attr name="drawAxisY" format="boolean"/>
+		<attr name="drawAxisAtZero" format="boolean"/>
+		<attr name="drawAxisAtZeroX" format="boolean"/>
+		<attr name="drawAxisAtZeroY" format="boolean"/>
 		<attr name="drawArrows" format="boolean"/>
 		<attr name="drawGrid" format="boolean"/>
 		<attr name="drawGridX" format="boolean"/>

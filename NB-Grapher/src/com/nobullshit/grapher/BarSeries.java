@@ -23,7 +23,7 @@ public class BarSeries extends Series {
 		float barWidth = (cellWidth - 2*cellPadding - (nSeries-1)*barSpacing) / nSeries;
 		
 		int j=0;
-		float left, top;
+		float left, top, bottom, temp;
 		double x;
 		for(int i=0; i<allXs.length; i++) {
 			x = allXs[i];
@@ -34,7 +34,13 @@ public class BarSeries extends Series {
 						+ barWidth*seriesIndex
 						+ barSpacing*seriesIndex;
 				top = (float) -T.transformY(Ys[j++]) + clip.bottom;
-				rects.addRect(left, top, left+barWidth, clip.bottom, Path.Direction.CW);
+				bottom = (float) -T.transformY(0) + clip.bottom;
+				if(bottom < top) {
+					temp = top;
+					top = bottom;
+					bottom = temp;
+				}
+				rects.addRect(left, top, left+barWidth, bottom, Path.Direction.CW);
 				rects.close();
 			}
 		}

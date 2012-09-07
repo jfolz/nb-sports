@@ -66,10 +66,9 @@ public class GrapherTestActivity extends Activity implements OnClickListener {
 		Graph g;
 		double[] Xs = new double[n];
 		double[] Ys = new double[n];
-		double off = Math.random();
         for(int i=0; i<Ys.length; i++) {
-        	Ys[i] = Math.random()+off;
-        	Xs[i] = i;
+        	Ys[i] = Math.random()-.5;
+        	Xs[i] = i-3;
         }
 		switch(v.getId()) {
 			case R.id.graph4:

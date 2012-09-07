@@ -2,7 +2,6 @@ package com.nobullshit.grapher;
 
 import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Rect;
@@ -31,14 +30,10 @@ public class ScatterSeries extends Series {
 				case Symbols.SYMBOL_SQUARE:
 				case Symbols.SYMBOL_BOX: s = Symbols.square(pointSize); break;
 				case Symbols.SYMBOL_TRIANGLE:
-				case Symbols.SYMBOL_FILLTRIANGLE: s = Symbols.triangle(pointSize); break;
+				case Symbols.SYMBOL_FILLTRIANGLE: s = Symbols.triangleUp(pointSize); break;
 				case Symbols.SYMBOL_PLUS:
 				default: s = Symbols.plus(pointSize); break;
 			}
-			
-			Matrix M = new Matrix();
-			M.setScale(1, -1);
-			s.transform(M);
 			
 			if(graph == null) graph = new Path();
 			else graph.reset();

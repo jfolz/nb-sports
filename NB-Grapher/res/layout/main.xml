@@ -45,10 +45,17 @@
 	        android:layout_width="match_parent"
 	        android:layout_height="wrap_content"
 	        nb:barSpacing="3dp"
-	        nb:drawGridX="false"/>
+	        nb:drawGridX="false"
+	        nb:drawAxisAtZero="true"/>
 	
 	    <com.nobullshit.grapher.LineGraph
 	        android:id="@+id/graph5"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        nb:drawAxisAtZero="true" />
+	
+	    <com.nobullshit.grapher.LineGraph
+	        android:id="@+id/graph6"
 	        android:layout_width="match_parent"
 	        android:layout_height="wrap_content" />
 	</LinearLayout>
