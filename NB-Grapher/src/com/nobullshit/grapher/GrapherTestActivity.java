@@ -36,7 +36,7 @@ public class GrapherTestActivity extends Activity implements OnClickListener {
         g = (Graph) findViewById(R.id.graph3);
         addSeries(g,Xs);
         addSeries(g,Xs);
-        g.setXTickFormatter(new DateFormatter("s"));
+        g.setXTickFormatter(new DateFormatter("m:ss"));
         g.refresh();
 
         findViewById(R.id.graph4).setOnClickListener(this);

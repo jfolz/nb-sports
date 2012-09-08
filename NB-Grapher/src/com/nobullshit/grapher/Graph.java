@@ -21,12 +21,18 @@ import com.nobullshit.text.Formatter;
 import com.nobullshit.text.StringUtil;
 
 public abstract class Graph extends View {
+	// defaults
 	protected static int[] allowedFractions = new int[] {1,2,4,5,8,10};
 	protected static int defaultAxisPadding = 6;
 	protected static int defaultAxisStrokeWidth = 2;
 	protected static float defaultGridStrokeWidth = 0.5F;
 	protected static float defaultGraphStrokeWidth = 2;
-	
+	protected static int defaultLabelColor = Resources.getSystem().getColor(android.R.color.primary_text_dark);
+	protected static int defaultAxisColor = Resources.getSystem().getColor(android.R.color.holo_blue_light);
+	protected static int defaultGridColor = Resources.getSystem().getColor(android.R.color.holo_blue_light) & 0x80FFFFFF;
+	protected static float ratio = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, Resources.getSystem().getDisplayMetrics());
+
+	// settings
 	protected boolean zeroBaseY = true;
 	protected boolean drawArrows = true;
 	protected boolean drawAxisY = true;
@@ -37,16 +43,7 @@ public abstract class Graph extends View {
 	protected boolean drawGridX = true;
 	protected boolean drawTickLabelsX = true;
 	protected boolean drawTickLabelsY = true;
-	protected double[] xTicks;
-	protected double[] yTicks;
-	protected String[] xTickLabels;
-	protected String[] yTickLabels;
-	protected float[] xTickPositions;
-	protected float[] yTickPositions;
 	protected float alpha = 1;
-
-	protected Formatter xTickFormatter = null;
-	protected Formatter yTickFormatter = null;
 	
 	// drawing parts
 	protected Path triangleX;
@@ -57,11 +54,18 @@ public abstract class Graph extends View {
 	protected Paint labelPaint;
 	
 	// measurements
-	protected float ratio;
 	protected float halfTextHeight;
 	protected Rect axisPadding;
 	protected Rect padding;
 	protected Rect clip;
+	protected double[] xTicks;
+	protected double[] yTicks;
+	protected String[] xTickLabels;
+	protected String[] yTickLabels;
+	protected float[] xTickPositions;
+	protected float[] yTickPositions;
+	protected Formatter xTickFormatter = null;
+	protected Formatter yTickFormatter = null;
 	
 	// dynamic
 	protected Transform T;
@@ -93,8 +97,6 @@ public abstract class Graph extends View {
 		xTickPositions = new float[0];
 		yTickPositions = new float[0];
 		
-		Resources r = getResources();
-		ratio = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, r.getDisplayMetrics());
 		int axisStrokeWidth = Math.round(defaultAxisStrokeWidth * ratio);
 		int gridStrokeWidth = Math.round(defaultGridStrokeWidth * ratio);
 		float graphStrokeWidth = defaultGraphStrokeWidth * ratio;
@@ -102,13 +104,13 @@ public abstract class Graph extends View {
 		
 		axisPaint = new Paint();
 		axisPaint.setAntiAlias(true);
-		axisPaint.setARGB(255, 51, 181, 229);
+		axisPaint.setColor(defaultAxisColor);
 		axisPaint.setStrokeWidth(axisStrokeWidth);
 		axisPaint.setStrokeCap(Paint.Cap.ROUND);
 		
 		labelPaint = new Paint();
 		labelPaint.setAntiAlias(true);
-		labelPaint.setARGB(255, 255, 255, 255);
+		labelPaint.setColor(defaultLabelColor);
 		
 		graphPaint = new Paint(axisPaint);
 		graphPaint.setStyle(Paint.Style.STROKE);
@@ -117,7 +119,7 @@ public abstract class Graph extends View {
 		graphPaint.setStrokeWidth(graphStrokeWidth);
 		
 		gridPaint = new Paint();
-		gridPaint.setARGB(128, 51, 181, 229);
+		gridPaint.setColor(defaultGridColor);
 		gridPaint.setStrokeWidth(gridStrokeWidth);
 		gridPaint.setStrokeCap(Paint.Cap.BUTT);
 		
@@ -151,7 +153,11 @@ public abstract class Graph extends View {
 			graphPaint.setStrokeWidth(arr.getDimension(R.styleable.Graph_graphStrokeWidth, graphStrokeWidth));
 
 			labelPaint.setTextSize(arr.getDimension(R.styleable.Graph_tickLabelSize, labelPaint.getTextSize()));
-			alpha = arr.getFloat(R.styleable.Graph_graphOpacity, alpha);
+			labelPaint.setColor(arr.getColor(R.styleable.Graph_labelColor, defaultLabelColor));
+
+			axisPaint.setColor(arr.getColor(R.styleable.Graph_axisColor, defaultAxisColor));
+			
+			gridPaint.setColor(arr.getColor(R.styleable.Graph_gridColor, defaultGridColor));
 		}
 		
 		Rect temp = new Rect();
@@ -177,6 +183,21 @@ public abstract class Graph extends View {
 
 	public abstract void addSeries(double[] Xs, double[] Ys, int color, CharSequence label);
 	
+	public void removeSeries(int i) {
+		series.remove(i);
+	}
+	
+	public boolean removeSeries(String label) {
+		int n = series.size();
+		for(int i=0; i<n; i++) {
+			if(series.get(i).getLabel().equals(label)) {
+				series.remove(i);
+				return true;
+			}
+		}
+		return false;
+	}
+	
 	public void refresh() {
 		prepareForDrawing();
 		invalidate();
@@ -184,19 +205,13 @@ public abstract class Graph extends View {
 	
 	protected void prepareForDrawing() {
 		if(getWidth() > 0 && getHeight() > 0) {
-			
 			T.reset();
-			
-			clip.top = axisPadding.top + getPaddingTop();
-			clip.bottom = getHeight() - axisPadding.bottom - getPaddingBottom()
-					- (int) FloatMath.ceil(labelPaint.getTextSize());
 	
+			calculateClipY();
 			measureDataSetY();
 			calculateTickLabelsY();
 			
-			clip.left = axisPadding.left + getPaddingLeft() + padding.left;
-			clip.right = getWidth() - axisPadding.right - getPaddingRight();
-			
+			calculateClipX();
 			measureDataSetX();
 			calculateTickLabelsX();
 
@@ -207,20 +222,30 @@ public abstract class Graph extends View {
 		}
 	}
 	
+	protected void calculateClipY() {
+		clip.top = axisPadding.top + getPaddingTop();
+		clip.bottom = getHeight() - axisPadding.bottom - getPaddingBottom()
+				- (int) FloatMath.ceil(labelPaint.getTextSize());
+	}
+	
+	protected void calculateClipX() {
+		clip.left = axisPadding.left + getPaddingLeft() + padding.left;
+		clip.right = getWidth() - axisPadding.right - getPaddingRight();
+	}
+	
 	protected void measureDataSetY() {
 		double scaleY=1, min=0, max=0;
 		int numYTicks = 4; //TODO calculate number of ticks based on screen space
 		
 		if(series.size() > 0) {
-			min = Float.MAX_VALUE;
-			max = Float.MIN_VALUE;
+			min = Double.MAX_VALUE;
+			max = Double.MIN_VALUE;
 			for(Series d: series) {
-				Bounds b = d.getBounds();
-				min = Math.min(min, b.miny);
-				max = Math.max(max, b.maxy);
+				min = Math.min(min, d.getMinY());
+				max = Math.max(max, d.getMaxY());
 			}
 			if(zeroBaseY && min > 0) min = 0;
-			scaleY = (float) (clip.height() / (max - min));
+			scaleY = (double) clip.height() / (max - min);
 			yTicks = calculateTickArray(min, max, numYTicks);
 			
 			T.sy = scaleY;
@@ -236,9 +261,8 @@ public abstract class Graph extends View {
 			min = Float.MAX_VALUE;
 			max = Float.MIN_VALUE;
 			for(Series d: series) {
-				Bounds b = d.getBounds();
-				min = Math.min(min, b.minx);
-				max = Math.max(max, b.maxx);
+				min = Math.min(min, d.getMinX());
+				max = Math.max(max, d.getMaxX());
 			}
 			scaleX = (float) (clip.width() / (max - min));
 			xTicks = calculateTickArray(min, max, numXTicks);
@@ -332,6 +356,8 @@ public abstract class Graph extends View {
 	
 	@Override
 	protected void onDraw(Canvas canvas) {
+		super.onDraw(canvas);
+		
 		drawGrid(canvas);
 		drawAxis(canvas);
 		drawTickLabels(canvas);
@@ -348,25 +374,35 @@ public abstract class Graph extends View {
 	}
 	
 	protected void drawTickLabels(Canvas canvas) {
-		float x, y;
+		float x, y, next, last = Float.MIN_VALUE, width;
 		int i;
 		String s;
+		
 		if(drawTickLabelsX) {
 			labelPaint.setTextAlign(Align.CENTER);
 			for(i=0; i<xTicks.length; i++) {
 				s = xTickLabels[i];
 				x = xTickPositions[i];
-				if(x+labelPaint.measureText(s)/2 <= clip.right+axisPadding.right)
+				width = labelPaint.measureText(s)/2;
+				next = x-width;
+				if(last < next && x+width <= clip.right+axisPadding.right) {
 					canvas.drawText(s, x, clip.bottom+axisPadding.bottom+2*halfTextHeight, labelPaint);
+					last = x+width;
+				}
 			}
 		}
+		
+		last = Float.MAX_VALUE;
 		if(drawTickLabelsY) {
 			labelPaint.setTextAlign(Align.RIGHT);
 			for(i=0; i<yTicks.length; i++) {
 				s = yTickLabels[i];
 				y = yTickPositions[i];
-				if(y-halfTextHeight >= clip.top-axisPadding.top)
-					canvas.drawText(s, clip.left-axisPadding.left, y+halfTextHeight, labelPaint);
+				next = y+halfTextHeight;
+				if(next < last && y-halfTextHeight >= clip.top-axisPadding.top) {
+					canvas.drawText(s, clip.left-axisPadding.left, next, labelPaint);
+					last = y-halfTextHeight;
+				}
 			}
 		}
 	}

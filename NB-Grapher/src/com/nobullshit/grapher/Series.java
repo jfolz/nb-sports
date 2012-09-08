@@ -12,7 +12,8 @@ public abstract class Series {
 	protected double[] Ys;
 	protected int color;
 	protected CharSequence label;
-	protected Bounds bounds;
+	protected double minx=Double.MAX_VALUE, maxx=Double.MIN_VALUE, 
+			miny=Double.MAX_VALUE, maxy=Double.MIN_VALUE;
 	
 	public Series(double[] Xs, double[] Ys, int color, CharSequence label) {		
 		this.color = color;
@@ -32,18 +33,15 @@ public abstract class Series {
 			this.Xs = new double[Ys.length];
 			for(int i=0; i<this.Xs.length; i++) this.Xs[i] = i;
 		}
-
-		this.bounds = new Bounds(Double.MAX_VALUE,Double.MIN_VALUE,
-				Double.MAX_VALUE,Double.MIN_VALUE);
 		
 		for(double x: this.Xs) {
-			bounds.minx = Math.min(bounds.minx, x);
-			bounds.maxx = Math.max(bounds.maxx, x);
+			minx = Math.min(minx, x);
+			maxx = Math.max(maxx, x);
 		}
 		
 		for(double y: this.Ys) {
-			bounds.miny = Math.min(bounds.miny, y);
-			bounds.maxy = Math.max(bounds.maxy, y);
+			miny = Math.min(miny, y);
+			maxy = Math.max(maxy, y);
 		}
 	}
 	
@@ -55,8 +53,20 @@ public abstract class Series {
 		return Xs;
 	}
 	
-	public Bounds getBounds() {
-		return bounds;
+	public double getMinX() {
+		return minx;
+	}
+	
+	public double getMaxX() {
+		return maxx;
+	}
+	
+	public double getMinY() {
+		return miny;
+	}
+	
+	public double getMaxY() {
+		return maxy;
 	}
 	
 	public CharSequence getLabel() {

@@ -26,8 +26,12 @@
 	        android:layout_width="wrap_content"
 	        android:layout_height="wrap_content"
 	        android:padding="5mm"
+	        android:background="@drawable/testbg"
+	        nb:labelColor="@android:color/primary_text_light"
+	        nb:axisColor="@android:color/primary_text_light"
+	        nb:gridColor="@android:color/primary_text_light"
 	        nb:zeroBaseY="true"
-	        nb:drawArrows="false"
+	        nb:drawArrows="true"
 	        nb:tickLabelSize="9sp"
 	        nb:symbolSize="2mm"
 	        nb:graphStrokeWidth="1dp" />
