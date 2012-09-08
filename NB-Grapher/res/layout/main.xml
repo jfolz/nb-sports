@@ -56,7 +56,8 @@
 	        android:id="@+id/graph5"
 	        android:layout_width="match_parent"
 	        android:layout_height="wrap_content"
-	        nb:drawAxisAtZero="true" />
+	        nb:drawAxisAtZero="true"
+	        nb:antiAliasGraph="false" />
 	
 	    <com.nobullshit.grapher.LineGraph
 	        android:id="@+id/graph6"

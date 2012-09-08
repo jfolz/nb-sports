@@ -22,15 +22,20 @@ import com.nobullshit.text.StringUtil;
 
 public abstract class Graph extends View {
 	// defaults
-	protected static int[] allowedFractions = new int[] {1,2,4,5,8,10};
-	protected static int defaultAxisPadding = 6;
-	protected static int defaultAxisStrokeWidth = 2;
-	protected static float defaultGridStrokeWidth = 0.5F;
-	protected static float defaultGraphStrokeWidth = 2;
-	protected static int defaultLabelColor = Resources.getSystem().getColor(android.R.color.primary_text_dark);
-	protected static int defaultAxisColor = Resources.getSystem().getColor(android.R.color.holo_blue_light);
-	protected static int defaultGridColor = Resources.getSystem().getColor(android.R.color.holo_blue_light) & 0x80FFFFFF;
-	protected static float ratio = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, Resources.getSystem().getDisplayMetrics());
+	protected static final float[] allowedFractions =
+			new float[] {10, 8, 5, 4, 2, 1, 1/2F, 1/4F, 1/8F, 1/10F};
+	protected static final int defaultAxisPadding = 6;
+	protected static final int defaultAxisStrokeWidth = 2;
+	protected static final float defaultGridStrokeWidth = 0.5F;
+	protected static final float defaultGraphStrokeWidth = 2;
+	protected static final int defaultLabelColor =
+			Resources.getSystem().getColor(android.R.color.primary_text_dark);
+	protected static final int defaultAxisColor =
+			Resources.getSystem().getColor(android.R.color.holo_blue_light);
+	protected static final int defaultGridColor =
+			Resources.getSystem().getColor(android.R.color.holo_blue_light) & 0x80FFFFFF;
+	protected static final float ratio =
+			TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, Resources.getSystem().getDisplayMetrics());
 
 	// settings
 	protected boolean zeroBaseY = true;
@@ -151,6 +156,7 @@ public abstract class Graph extends View {
 			axisPadding.bottom = arr.getDimensionPixelSize(R.styleable.Graph_axisPaddingBottom, axpad);
 			
 			graphPaint.setStrokeWidth(arr.getDimension(R.styleable.Graph_graphStrokeWidth, graphStrokeWidth));
+			graphPaint.setAntiAlias(arr.getBoolean(R.styleable.Graph_antiAliasGraph, true));
 
 			labelPaint.setTextSize(arr.getDimension(R.styleable.Graph_tickLabelSize, labelPaint.getTextSize()));
 			labelPaint.setColor(arr.getColor(R.styleable.Graph_labelColor, defaultLabelColor));
@@ -235,7 +241,9 @@ public abstract class Graph extends View {
 	
 	protected void measureDataSetY() {
 		double scaleY=1, min=0, max=0;
-		int numYTicks = 4; //TODO calculate number of ticks based on screen space
+
+		float tickSize = halfTextHeight * 2 * 3;
+		int maxTicks = (int) FloatMath.ceil((float) clip.height() / tickSize);
 		
 		if(series.size() > 0) {
 			min = Double.MAX_VALUE;
@@ -246,7 +254,7 @@ public abstract class Graph extends View {
 			}
 			if(zeroBaseY && min > 0) min = 0;
 			scaleY = (double) clip.height() / (max - min);
-			yTicks = calculateTickArray(min, max, numYTicks);
+			yTicks = calculateTickArray(min, max, maxTicks);
 			
 			T.sy = scaleY;
 			T.ty = -min;
@@ -255,7 +263,11 @@ public abstract class Graph extends View {
 	
 	protected void measureDataSetX() {
 		double scaleX=1, min=0, max=0;
-		int numXTicks = 5; //TODO calculate number of ticks based on screen space
+		
+		// basing this on text height might be counter-intuitive, but this way
+		// we get roughly the same spacing for both x and y ticks
+		float tickSize = halfTextHeight * 2 * 3;
+		int maxTicks = (int) FloatMath.ceil((float) clip.width() / tickSize);
 		
 		if(series.size() > 0) {
 			min = Float.MAX_VALUE;
@@ -265,25 +277,25 @@ public abstract class Graph extends View {
 				max = Math.max(max, d.getMaxX());
 			}
 			scaleX = (float) (clip.width() / (max - min));
-			xTicks = calculateTickArray(min, max, numXTicks);
+			xTicks = calculateTickArray(min, max, maxTicks);
 			
 			T.tx = -min;
 			T.sx = scaleX;
 		}
 	}
 	
-	protected double[] calculateTickArray(double min, double max, int numticks) {
+	protected double[] calculateTickArray(double min, double max, int maxTicks) {
 		double[] ticks = null;
 		double nearest, off;
 		int high, low;
-		for(int fraction: allowedFractions) {
+		for(float fraction: allowedFractions) {
 			nearest = Math.pow(10,Math.floor(Math.log10(max-min)));
-			nearest = nearest / fraction;
+			nearest = nearest / (double) fraction;
 			off = Math.floor(min / nearest) * nearest;
 			high = (int) Math.floor((max - off) / nearest);
 			low = (int) Math.ceil((min - off) / nearest);
 			
-			if(high-low+1 < numticks) continue;
+			if(high-low+1 > maxTicks) continue;
 			
 			ticks = new double[high-low+1];
 			for(int i=low; i<=high; i++) ticks[i-low] = i*nearest + off;
