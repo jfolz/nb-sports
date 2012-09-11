@@ -204,6 +204,10 @@ public abstract class Graph extends View {
 		return false;
 	}
 	
+	public int getSeriesCount() {
+		return series.size();
+	}
+	
 	public void refresh() {
 		prepareForDrawing();
 		invalidate();

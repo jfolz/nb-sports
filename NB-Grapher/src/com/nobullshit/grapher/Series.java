@@ -27,21 +27,21 @@ public abstract class Series {
 				this.Xs[i] = Xs[sorted[i]];
 				this.Ys[i] = Ys[sorted[i]];
 			}
+			
+			for(double x: this.Xs) {
+				if(x < minx) minx = x;
+				if(x > maxx) maxx = x;
+			}
 		}
 		else {
 			this.Ys = Ys;
-			this.Xs = new double[Ys.length];
-			for(int i=0; i<this.Xs.length; i++) this.Xs[i] = i;
-		}
-		
-		for(double x: this.Xs) {
-			minx = Math.min(minx, x);
-			maxx = Math.max(maxx, x);
+			minx = 0;
+			maxx = Ys.length - 1;
 		}
 		
 		for(double y: this.Ys) {
-			miny = Math.min(miny, y);
-			maxy = Math.max(maxy, y);
+			if(y < miny) miny = y;
+			if(y > maxy) maxy = y;
 		}
 	}
 	
@@ -100,5 +100,55 @@ public abstract class Series {
 			for(int i=0; i<indices.length; i++) out[i] = indices[i].intValue();
 			return out;
 		}
+	}
+	
+	protected interface SeriesIterator {
+		
+		public boolean hasNext();
+		public double next();
+		
+	}
+	
+	protected class ArrayIterator implements SeriesIterator {
+		
+		private int index;
+		private double[] arr;
+		
+		public ArrayIterator(double[] arr) {
+			this.arr = arr;
+		}
+
+		@Override
+		public boolean hasNext() {
+			return index < arr.length;
+		}
+
+		@Override
+		public double next() {
+			return arr[index++];
+		}
+		
+	}
+	
+	protected class NumberIterator implements SeriesIterator {
+		
+		private int next;
+		int minx, maxx;
+		
+		public NumberIterator(int minx, int maxx) {
+			this.minx = minx;
+			this.maxx = maxx;
+		}
+
+		@Override
+		public boolean hasNext() {
+			return next < maxx;
+		}
+
+		@Override
+		public double next() {
+			return next++;
+		}
+		
 	}
 }

@@ -18,16 +18,22 @@ public class BarSeries extends Series {
 		if(rects == null) rects = new Path();
 		else rects.reset();
 		
+		if(Ys.length == 0) return;
+		
 		float cellWidth = (float) clip.width() / allXs.length;
 		float cellPadding = cellWidth / (nSeries+1) / 2;
 		float barWidth = (cellWidth - 2*cellPadding - (nSeries-1)*barSpacing) / nSeries;
 		
 		int j=0;
 		float left, top, bottom, temp;
-		double x;
+		SeriesIterator iX;
+		if(Xs == null) iX = new NumberIterator(0,Ys.length);
+		else iX = new ArrayIterator(Xs);
+		double ax, x = iX.next();
+		
 		for(int i=0; i<allXs.length; i++) {
-			x = allXs[i];
-			if(j<Xs.length && Xs[j] == x) {
+			ax = allXs[i];
+			if(x == ax) {
 				left = clip.left
 						+ cellWidth*i
 						+ cellPadding
@@ -42,6 +48,9 @@ public class BarSeries extends Series {
 				}
 				rects.addRect(left, top, left+barWidth, bottom, Path.Direction.CW);
 				rects.close();
+
+				if(!iX.hasNext()) break;
+				else x = iX.next();
 			}
 		}
 	}
