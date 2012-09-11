@@ -16,14 +16,17 @@ public abstract class Series {
 			miny=Double.MAX_VALUE, maxy=Double.MIN_VALUE;
 	
 	public Series(double[] Xs, double[] Ys, int color, CharSequence label) {
-		
 		this.color = color;
 		this.label = label;
 
-		if(Ys == null || Ys.length == 0) return;
-		if(Xs != null) {
-			if(Ys.length != Xs.length) return;
-			
+		if(Ys == null || Ys.length == 0 || (Xs != null && Ys.length != Xs.length)) {
+			minx = 0;
+			maxx = 0;
+			miny = 0;
+			maxy = 0;
+			return;
+		}
+		else if(Xs != null) {
 			int[] sorted = new Argsort(Xs).argsort();
 			this.Xs = new double[Xs.length];
 			this.Ys = new double[Ys.length];

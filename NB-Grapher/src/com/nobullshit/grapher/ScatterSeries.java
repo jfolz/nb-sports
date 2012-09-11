@@ -21,28 +21,27 @@ public class ScatterSeries extends Series {
 	}
 
 	public void createPoints(Transform T, Rect clip, float pointSize) {
-		if(Ys.length > 0) {
-			Path s;
-			switch(symbol) {
-				case Symbols.SYMBOL_CROSS: s = Symbols.cross(pointSize); break;
-				case Symbols.SYMBOL_CIRCLE:
-				case Symbols.SYMBOL_DOT: s = Symbols.circle(pointSize); break;
-				case Symbols.SYMBOL_SQUARE:
-				case Symbols.SYMBOL_BOX: s = Symbols.square(pointSize); break;
-				case Symbols.SYMBOL_TRIANGLE:
-				case Symbols.SYMBOL_FILLTRIANGLE: s = Symbols.triangleUp(pointSize); break;
-				case Symbols.SYMBOL_PLUS:
-				default: s = Symbols.plus(pointSize); break;
-			}
-			
-			if(graph == null) graph = new Path();
-			else graph.reset();
-			
-			for(int i=0; i<Xs.length; i++)
-				graph.addPath(s, (float) T.transformX(Xs[i]), (float) -T.transformY(Ys[i]));
-			
-			graph.offset(clip.left, clip.bottom);
+		if(Ys == null) return;
+		else if(graph == null) graph = new Path();
+		else graph.reset();
+		
+		Path s;
+		switch(symbol) {
+		case Symbols.SYMBOL_CROSS: s = Symbols.cross(pointSize); break;
+		case Symbols.SYMBOL_CIRCLE:
+		case Symbols.SYMBOL_DOT: s = Symbols.circle(pointSize); break;
+		case Symbols.SYMBOL_SQUARE:
+		case Symbols.SYMBOL_BOX: s = Symbols.square(pointSize); break;
+		case Symbols.SYMBOL_TRIANGLE:
+		case Symbols.SYMBOL_FILLTRIANGLE: s = Symbols.triangleUp(pointSize); break;
+		case Symbols.SYMBOL_PLUS:
+		default: s = Symbols.plus(pointSize); break;
 		}
+
+		for(int i=0; i<Xs.length; i++)
+			graph.addPath(s, (float) T.transformX(Xs[i]), (float) -T.transformY(Ys[i]));
+
+		graph.offset(clip.left, clip.bottom);
 	}
 
 	@Override

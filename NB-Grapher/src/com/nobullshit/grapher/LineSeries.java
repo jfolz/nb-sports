@@ -16,15 +16,14 @@ public class LineSeries extends Series {
 	}
 	
 	public void createGraph(Transform T, Rect clip) {
-		if(Ys == null || Ys.length == 0) return;
+		if(Ys == null) return;
+		else if(graph == null) graph = new Path();
+		else graph.reset();
 		
 		double m = clip.width();
 		int samplerate;
 		if(subsample && Ys.length > m) samplerate = (int) Math.floor(Ys.length / m);
 		else samplerate = 1;
-		
-		if(graph == null) graph = new Path();
-		else graph.reset();
 
 		SeriesIterator iX;
 		if(Xs != null) iX = new ArrayIterator(Xs);

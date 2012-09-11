@@ -15,10 +15,9 @@ public class BarSeries extends Series {
 	}
 	
 	public void createBars(Transform T, Rect clip, double[] allXs, int nSeries, int seriesIndex, float barSpacing) {
-		if(rects == null) rects = new Path();
+		if(Ys == null) return;
+		else if(rects == null) rects = new Path();
 		else rects.reset();
-		
-		if(Ys.length == 0) return;
 		
 		float cellWidth = (float) clip.width() / allXs.length;
 		float cellPadding = cellWidth / (nSeries+1) / 2;
