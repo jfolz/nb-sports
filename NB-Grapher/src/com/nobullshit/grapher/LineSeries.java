@@ -16,6 +16,8 @@ public class LineSeries extends Series {
 	}
 	
 	public void createGraph(Transform T, Rect clip) {
+		if(Ys == null || Ys.length == 0) return;
+		
 		double m = clip.width();
 		int samplerate;
 		if(subsample && Ys.length > m) samplerate = (int) Math.floor(Ys.length / m);

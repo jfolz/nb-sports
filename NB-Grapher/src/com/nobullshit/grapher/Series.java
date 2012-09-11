@@ -15,11 +15,15 @@ public abstract class Series {
 	protected double minx=Double.MAX_VALUE, maxx=Double.MIN_VALUE, 
 			miny=Double.MAX_VALUE, maxy=Double.MIN_VALUE;
 	
-	public Series(double[] Xs, double[] Ys, int color, CharSequence label) {		
+	public Series(double[] Xs, double[] Ys, int color, CharSequence label) {
+		
 		this.color = color;
 		this.label = label;
-		
+
+		if(Ys == null || Ys.length == 0) return;
 		if(Xs != null) {
+			if(Ys.length != Xs.length) return;
+			
 			int[] sorted = new Argsort(Xs).argsort();
 			this.Xs = new double[Xs.length];
 			this.Ys = new double[Ys.length];

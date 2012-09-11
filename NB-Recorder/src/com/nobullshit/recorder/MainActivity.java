@@ -10,9 +10,7 @@ import java.util.List;
 import android.app.Activity;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
 import android.location.Location;
-import android.location.LocationListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.Menu;
@@ -78,7 +76,6 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
 
 	@Override
 	public void onClick(View v) {
-		// TODO Auto-generated method stub
 		switch(v.getId()) {
 		case R.id.button1:
 			if(task != null) task.cancel(true);
@@ -112,6 +109,7 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
 		graph.refresh();
 	}
 	
+	@SuppressWarnings("resource")
 	private double[] readTimestamps(File in) {
 		List<Double> temp = new ArrayList<Double>(32*1024);
 		try {
@@ -142,6 +140,7 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
 			return null;
 		}
 		
+		@SuppressWarnings("resource")
 		private void measureRecordings() {
 	        File dir = new File(getExternalFilesDir(null),RecorderApplication.APP_DIRECTORY);
 			if(dir.isDirectory()) {
@@ -207,7 +206,6 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
 
 	@Override
 	public void onLocationChanged(Location location) {
-		// TODO Auto-generated method stub
 		double latitude = location.getLatitude();
 		double longitude = location.getLongitude();
 		double altitude = location.getAltitude();
@@ -221,20 +219,11 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
 	}
 
 	@Override
-	public void onProviderDisabled(String provider) {
-		// TODO Auto-generated method stub
-		
-	}
+	public void onProviderDisabled(String provider) {}
 
 	@Override
-	public void onProviderEnabled(String provider) {
-		// TODO Auto-generated method stub
-		
-	}
+	public void onProviderEnabled(String provider) {}
 
 	@Override
-	public void onStatusChanged(String provider, int status, Bundle extras) {
-		// TODO Auto-generated method stub
-		
-	}
+	public void onStatusChanged(String provider, int status, Bundle extras) {}
 }
