@@ -11,6 +11,8 @@ import android.app.Activity;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
+import android.location.Location;
+import android.location.LocationListener;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.Menu;
@@ -23,7 +25,7 @@ import com.nobullshit.binaryio.BinaryReader;
 import com.nobullshit.grapher.Graph;
 import com.nobullshit.text.DecimalFormatter;
 
-public class MainActivity extends Activity implements SensorEventListener, OnClickListener {
+public class MainActivity extends Activity implements ListenerListener, OnClickListener {
 	
 	private RecorderApplication app;
 	private TextView text;
@@ -89,22 +91,6 @@ public class MainActivity extends Activity implements SensorEventListener, OnCli
 		}
 	}
 
-	@Override
-	public void onAccuracyChanged(Sensor sensor, int accuracy) {
-		status.append(accuracy + "\n");
-	}
-
-	@Override
-	public void onSensorChanged(SensorEvent event) {
-		float x=event.values[0], y=event.values[1], z=event.values[2];
-		text.setText(
-				"x: " + x + "\n"
-			  + "y: " + y + "\n"
-			  + "z: " + z + "\n"
-			  + "n: " + app.getCount() + "\n"
-			  + String.format("%.5f updates/s", (double) app.getCount() / app.getRuntime()));
-	}
-	
 	private void displayError(Exception e) {
 		StringWriter w = new StringWriter();
 		e.printStackTrace(new PrintWriter(w));
@@ -198,6 +184,57 @@ public class MainActivity extends Activity implements SensorEventListener, OnCli
 		protected void onProgressUpdate(String... update) {
 			text.append(update[0]);
 		}
+		
+	}
+
+
+
+	@Override
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {
+		status.append(accuracy + "\n");
+	}
+
+	@Override
+	public void onSensorChanged(SensorEvent event) {
+		float x=event.values[0], y=event.values[1], z=event.values[2];
+		text.setText(
+				"x: " + x + "\n"
+			  + "y: " + y + "\n"
+			  + "z: " + z + "\n"
+			  + "n: " + app.getCount() + "\n"
+			  + String.format("%.5f updates/s", (double) app.getCount() / app.getRuntime()));
+	}
+
+	@Override
+	public void onLocationChanged(Location location) {
+		// TODO Auto-generated method stub
+		double latitude = location.getLatitude();
+		double longitude = location.getLongitude();
+		double altitude = location.getAltitude();
+		float accuracy = location.getAccuracy();
+		
+		status.setText(
+				"lat:  " + latitude + "\n"
+			  + "long: " + longitude + "\n"
+			  + "alt:  " + altitude + "\n"
+			  + "acc:  " + accuracy);
+	}
+
+	@Override
+	public void onProviderDisabled(String provider) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onProviderEnabled(String provider) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onStatusChanged(String provider, int status, Bundle extras) {
+		// TODO Auto-generated method stub
 		
 	}
 }

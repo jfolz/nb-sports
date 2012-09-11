@@ -9,19 +9,25 @@ import android.app.Application;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
+import android.location.Location;
+import android.location.LocationListener;
+import android.os.Bundle;
 import android.os.PowerManager;
 import android.util.Log;
 
 import com.nobullshit.binaryio.BinaryWriter;
 import com.nobullshit.sensor.AccelerationReader;
+import com.nobullshit.sensor.LocationReader;
 
-public class RecorderApplication extends Application implements SensorEventListener {
+public class RecorderApplication extends Application implements SensorEventListener, LocationListener {
 	
 	public static final String APP_DIRECTORY = "nb-recordings";
 	
-	private BinaryWriter writer;
-	private AccelerationReader reader;
-	private List<SensorEventListener> listeners;
+	private BinaryWriter accwriter;
+	private AccelerationReader accreader;
+	private BinaryWriter locwriter;
+	private LocationReader locreader;
+	private List<ListenerListener> listeners;
 	private Exception e;
 	private boolean recording;
 	private PowerManager.WakeLock lock;
@@ -31,17 +37,17 @@ public class RecorderApplication extends Application implements SensorEventListe
 	@Override
 	public void onCreate() {
 		super.onCreate();
-		listeners = new ArrayList<SensorEventListener>(4);
+		listeners = new ArrayList<ListenerListener>(4);
 		recording = false;
 		PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
 		lock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RecorderApplication");
 	}
 	
-	public void addListener(SensorEventListener e) {
+	public void addListener(ListenerListener e) {
 		listeners.add(e);
 	}
 	
-	public void removeListener(SensorEventListener e) {
+	public void removeListener(ListenerListener e) {
 		listeners.remove(e);
 	}
 	
@@ -57,58 +63,49 @@ public class RecorderApplication extends Application implements SensorEventListe
 		recording = !recording;
 	}
 
-	public String startRecording() throws IOException {
+	public void startRecording() throws IOException {
 		lock.acquire();
 		count = 0;
+		long now = System.currentTimeMillis();
 		
 		File dir = new File(getExternalFilesDir(null),APP_DIRECTORY);
 		if(!dir.isDirectory()) dir.mkdir();
-		File out = new File(dir, "rec_"+System.currentTimeMillis());
-		writer = new BinaryWriter(out,new String[] {"x","y","z"}, new Object[] {1D,1D,1D});
-		if(reader == null) reader = new AccelerationReader(this, this, 100);
-		reader.start();
+		
+		// acceleration
+		File out = new File(dir, "acc_"+now);
+		accwriter = new BinaryWriter(out,new String[] {"x","y","z"}, new Object[] {1D,1D,1D});
+		if(accreader == null) accreader = new AccelerationReader(this, this, 100);
+		
+		// location
+		out = new File(dir, "gps_"+now);
+		locwriter = new BinaryWriter(out,new String[] {"time","lat","long","alt","acc"}, new Object[] {1L,1D,1D,1D,1F});
+		if(locreader == null) locreader = new LocationReader(this, this, 1000);
 
+		accreader.start();
+		locreader.start();
 		start = System.currentTimeMillis();
-		return out.getAbsolutePath();
 	}
 	
 	public synchronized void stopRecording() throws IOException {
 		lock.release();
 		count = 0;
 		
-		if(reader != null) {
-			reader.stop();
+		if(accreader != null) {
+			accreader.stop();
 		}
-		if(writer != null) {
-			writer.close();
-			writer = null;
+		if(locreader != null) {
+			locreader.stop();
+		}
+		if(accwriter != null) {
+			accwriter.close();
+			accwriter = null;
+		}
+		if(locwriter != null) {
+			locwriter.close();
+			locwriter = null;
 		}
 	}
 
-	@Override
-	public void onAccuracyChanged(Sensor sensor, int accuracy) {
-		for(SensorEventListener l: listeners) l.onAccuracyChanged(sensor, accuracy);
-	}
-
-	@Override
-	public void onSensorChanged(SensorEvent event) {
-		synchronized (this) {
-			if(recording) {
-				count++;
-				try {
-					writer.writeLong(System.currentTimeMillis());
-					for(float v: event.values) {
-						writer.writeFloat(v);
-					}
-				} catch (IOException e) {
-					this.e = e;
-					e.printStackTrace();
-				}
-			}
-		}
-		if(recording) for(SensorEventListener l: listeners) l.onSensorChanged(event);
-	}
-	
 	public Exception getError() {
 		return e;
 	}
@@ -123,6 +120,69 @@ public class RecorderApplication extends Application implements SensorEventListe
 	
 	public int getCount() {
 		return count;
+	}
+
+	@Override
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {
+		for(SensorEventListener l: listeners) l.onAccuracyChanged(sensor, accuracy);
+	}
+
+	@Override
+	public void onSensorChanged(SensorEvent event) {
+		synchronized (this) {
+			if(recording) {
+				count++;
+				try {
+					accwriter.writeLong(System.currentTimeMillis());
+					for(float v: event.values) {
+						accwriter.writeFloat(v);
+					}
+				} catch (IOException e) {
+					this.e = e;
+					e.printStackTrace();
+				}
+			}
+		}
+		if(recording) for(SensorEventListener l: listeners) l.onSensorChanged(event);
+	}
+
+	@Override
+	public void onLocationChanged(Location location) {
+		// TODO Auto-generated method stub
+		// time, lat, long, alt, acc
+		synchronized (this) {
+			if(recording) {
+				try {
+					locwriter.writeLong(location.getTime());
+					locwriter.writeDouble(location.getLatitude());
+					locwriter.writeDouble(location.getLongitude());
+					locwriter.writeDouble(location.getAltitude());
+					locwriter.writeFloat(location.getAccuracy());
+				} catch (IOException e) {
+					this.e = e;
+					e.printStackTrace();
+				}
+			}
+		}
+		if(recording) for(LocationListener l: listeners) l.onLocationChanged(location);
+	}
+
+	@Override
+	public void onProviderDisabled(String provider) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onProviderEnabled(String provider) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void onStatusChanged(String provider, int status, Bundle extras) {
+		// TODO Auto-generated method stub
+		
 	}
 
 }
