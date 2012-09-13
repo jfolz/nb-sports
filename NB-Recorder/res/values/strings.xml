@@ -3,5 +3,6 @@
     <string name="app_name">NB-Recorder</string>
     <string name="menu_settings">Settings</string>
     <string name="button_rec">REC</string>
+    <string name="button_unlock">Unlock</string>
 
 </resources>

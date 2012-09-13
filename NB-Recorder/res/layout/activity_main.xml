@@ -9,6 +9,15 @@
         android:layout_height="wrap_content" >
 
         <Button
+            android:id="@+id/lock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentLeft="true"
+            android:text="@string/button_unlock"
+            android:enabled="false" />
+
+        <Button
             android:id="@+id/button1"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

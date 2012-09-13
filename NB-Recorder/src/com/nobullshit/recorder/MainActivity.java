@@ -11,11 +11,11 @@ import android.app.Activity;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.location.Location;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -28,23 +28,25 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
 	private RecorderApplication app;
 	private TextView text;
 	private TextView status;
-	private BenchmarkTask task;
 	private Graph graph;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
         app = (RecorderApplication) getApplication();
+        
+        setContentView(R.layout.activity_main);
+        
+        //app = (RecorderApplication) getApplication();
         text = (TextView) findViewById(R.id.text);
         status = (TextView) findViewById(R.id.status);
+        
         Button rec = (Button) findViewById(R.id.button1);
         rec.setOnClickListener(this);
-        if(!app.isRecording()) {
-        	task = new BenchmarkTask();
-            task.execute();
-        }
-
+        
+        Button lock = (Button) findViewById(R.id.lock);
+        lock.setOnClickListener(this);
+        
         graph = (Graph) findViewById(R.id.graph);
         graph.setYTickFormatter(new DecimalFormatter(".00"));
         graph.setOnClickListener(this);
@@ -54,18 +56,21 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
     public void onResume() {
     	super.onResume();
     	app.addListener(this);
+    	if(app.isRecording() && app.isLocked()) lock();
+    	else unlock();
     }
     
     @Override
     public void onPause() {
     	super.onPause();
     	app.removeListener(this);
+    	if(app.isRecording() && app.isLocked()) lock();
+    	else unlock();
     }
     
     @Override
     protected void onStop() {
     	super.onStop();
-    	if(task != null) task.cancel(true);
     }
 
     @Override
@@ -78,13 +83,23 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
 	public void onClick(View v) {
 		switch(v.getId()) {
 		case R.id.button1:
-			if(task != null) task.cancel(true);
 			try { app.toggleRecording(); }
-			catch (IOException e) { displayError(e); }
-			if(app.isRecording()) graphLastRecording();
+			catch (Exception e) { displayError(e); }
+			if(app.isRecording()) {
+		        // now recording, so show activity in front of lockscreen
+		        getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
+			}
+			else {
+				// show lockscreen
+				getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
+			}
 			break;
 		case R.id.graph:
 			graphLastRecording();
+			break;
+		case R.id.lock:
+			unlock();
+			break;
 		}
 	}
 
@@ -102,26 +117,44 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
 			File[] files = dir.listFiles();
 			if(files.length > 0) {
 				File in = files[files.length-1];
-				double[] Ts = readTimestamps(in);
-				graph.addSeries(null, Ts);
+				BinaryReader reader;
+				try {
+					reader = new BinaryReader(in);
+					status.setText(reader.getHeader());
+					double[] Ts = readTimestamps(reader);
+					graph.addSeries(null, Ts);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
 			}
 		}
 		graph.refresh();
 	}
 	
-	@SuppressWarnings("resource")
-	private double[] readTimestamps(File in) {
+	private double[] readTimestamps(BinaryReader reader) {
 		List<Double> temp = new ArrayList<Double>(32*1024);
 		try {
-			BinaryReader reader = new BinaryReader(in);
-			long last = reader.readLong(), next;
+			byte series;
+			long last=0, next=0;
 			while(true) {
-				reader.readFloat();
-				reader.readFloat();
-				reader.readFloat();
-				next = reader.readLong();
-				temp.add((double) (next - last) );
-				last = next;
+				series = reader.readByte();
+				switch(series) {
+				case RecorderApplication.INDEX_ACCELERATION: // acceleration
+					next = reader.readLong();
+					reader.readFloat();
+					reader.readFloat();
+					reader.readFloat();
+					if(last > 0) temp.add((double) (next - last) );
+					last = next;
+					break;
+				case RecorderApplication.INDEX_LOCATION: // location
+					reader.readLong();
+					reader.readDouble();
+					reader.readDouble();
+					reader.readDouble();
+					reader.readFloat();
+					break;
+				}
 			}
 		} catch(IOException e) {}
 		int i=0;
@@ -130,63 +163,19 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
 		return out;
 	}
 	
-
-	
-	private class BenchmarkTask extends AsyncTask<Void, String, Void> {
-
-		@Override
-		protected Void doInBackground(Void... params) {
-			measureRecordings();
-			return null;
-		}
-		
-		@SuppressWarnings("resource")
-		private void measureRecordings() {
-	        File dir = new File(getExternalFilesDir(null),RecorderApplication.APP_DIRECTORY);
-			if(dir.isDirectory()) {
-				File[] files = dir.listFiles();
-				for(File in: files) {
-					if(isCancelled()) break;
-
-					String header = "???";
-					long size = in.length();
-					long entries = 0;
-					long start = System.currentTimeMillis();
-					try {
-						BinaryReader reader = new BinaryReader(in);
-						header = reader.getHeader();
-						while(true) {
-							reader.readLong();
-							for(int i=0; i<3; i++) reader.readFloat();
-							entries++;
-						}
-					} catch(IOException e) {}
-				
-					double delta = (System.currentTimeMillis()-start) / 1000D;
-					publishProgress(in.getName()
-							+ ", "
-							+ String.format("%7.2f kB", (double) size / 1024)
-							+ "\n"
-							+ header
-							+ "\n"
-							+ String.format("%10.2f b/entry",(double) size / entries)
-							+ "\n"
-							+ String.format("%10d entries, ", entries)
-							+ "\n"
-							+ String.format("%10.2f entries/s",entries / delta)
-							+ "\n"
-							+ "\n");
-				}
-			}
-		}
-		
-		protected void onProgressUpdate(String... update) {
-			text.append(update[0]);
-		}
-		
+	private void lock() {
+		findViewById(R.id.lock).setEnabled(true);
+		findViewById(R.id.button1).setEnabled(false);
+		// show in front of lockscreen
+		getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
 	}
-
-
+	
+	private void unlock() {
+		findViewById(R.id.lock).setEnabled(false);
+		findViewById(R.id.button1).setEnabled(true);
+		// show lockscreen
+		getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
+	}
 
 	@Override
 	public void onAccuracyChanged(Sensor sensor, int accuracy) {
