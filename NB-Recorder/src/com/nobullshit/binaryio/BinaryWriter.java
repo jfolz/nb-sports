@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.zip.GZIPOutputStream;
 
 import android.util.Log;
 
@@ -48,9 +47,8 @@ public class BinaryWriter extends DataOutputStream {
 
 	private static OutputStream create(File out) throws IOException {
 	    FileOutputStream fos = new FileOutputStream(out);
-	    BufferedOutputStream bos = new BufferedOutputStream(fos, 256*1024);
-		GZIPOutputStream zos = new GZIPOutputStream(bos);
-		return zos;
+		BufferedOutputStream bos = new BufferedOutputStream(fos,4*1024);
+		return bos;
 	}
 
 }

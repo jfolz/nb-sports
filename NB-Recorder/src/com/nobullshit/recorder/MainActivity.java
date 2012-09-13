@@ -8,9 +8,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.location.Location;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.View;
@@ -21,14 +23,21 @@ import android.widget.TextView;
 
 import com.nobullshit.binaryio.BinaryReader;
 import com.nobullshit.grapher.Graph;
+import com.nobullshit.recorder.io.FileUtils;
 import com.nobullshit.text.DecimalFormatter;
 
 public class MainActivity extends Activity implements ListenerListener, OnClickListener {
+	
+	public static final int SEND_RETURN_CODE = 23456;
+	
+	private static final String[] MAIL_ADDRESSES = 
+			new String[]{ "theriddling@gmail.com", "stefan.hemmer86@googlemail.com" };
 	
 	private RecorderApplication app;
 	private TextView text;
 	private TextView status;
 	private Graph graph;
+	private List<File> recentlySent;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -47,9 +56,14 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
         Button lock = (Button) findViewById(R.id.lock);
         lock.setOnClickListener(this);
         
+        Button send = (Button) findViewById(R.id.button_send);
+        send.setOnClickListener(this);
+        
         graph = (Graph) findViewById(R.id.graph);
         graph.setYTickFormatter(new DecimalFormatter(".00"));
         graph.setOnClickListener(this);
+		
+        recentlySent = new ArrayList<File>();
     }
     
     @Override
@@ -100,19 +114,26 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
 		case R.id.lock:
 			unlock();
 			break;
+		case R.id.button_send:
+			shareFiles();
+			break;
 		}
 	}
 
 	private void displayError(Exception e) {
 		StringWriter w = new StringWriter();
 		e.printStackTrace(new PrintWriter(w));
-		text.setText(new String(e.getMessage()) + "\n" + w.toString());
+		status.append(new String(e.getMessage()) + "\n" + w.toString());
 		e.printStackTrace();
+	}
+	
+	private void addStatus(CharSequence msg) {
+		status.append(msg + "\n");
 	}
 	
 	private void graphLastRecording() {
 		if(graph.getSeriesCount() > 0) graph.removeSeries(0);
-        File dir = new File(getExternalFilesDir(null),RecorderApplication.APP_DIRECTORY);
+        File dir = new File(getExternalFilesDir(null),RecorderApplication.RECORDING_DIRECTORY);
 		if(dir.isDirectory()) {
 			File[] files = dir.listFiles();
 			if(files.length > 0) {
@@ -166,6 +187,7 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
 	private void lock() {
 		findViewById(R.id.lock).setEnabled(true);
 		findViewById(R.id.button1).setEnabled(false);
+		findViewById(R.id.button_send).setEnabled(false);
 		// show in front of lockscreen
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
 	}
@@ -173,8 +195,49 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
 	private void unlock() {
 		findViewById(R.id.lock).setEnabled(false);
 		findViewById(R.id.button1).setEnabled(true);
+		findViewById(R.id.button_send).setEnabled(true);
 		// show lockscreen
 		getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
+	}
+	
+	private void shareFiles() {
+		File dir = app.getRecordingDirectory();
+		if(dir.isDirectory()) {
+			File[] files = dir.listFiles();
+			if(files.length > 0) {
+				try {
+					File outdir = app.getOutgoingDirectory();
+					File dest = new File(outdir,
+							"send_" + System.currentTimeMillis() + ".zip");
+					if(!outdir.exists()) outdir.mkdirs();
+					FileUtils.ZipFiles(files, dest);
+					for(File f: files) f.delete();
+					
+					Uri uri = Uri.parse("file://" + dest);
+
+					Intent intent = new Intent(Intent.ACTION_SEND);
+					intent.setType("text/plain");
+					intent.putExtra(Intent.EXTRA_EMAIL, MAIL_ADDRESSES);
+					intent.putExtra(Intent.EXTRA_SUBJECT, "Meine Aufnahmen");
+					intent.putExtra(Intent.EXTRA_STREAM, uri);
+					
+					startActivityForResult(Intent.createChooser(intent, "Aufnahmen senden"),
+							SEND_RETURN_CODE);
+				} catch (IOException e) {
+					addStatus("error sharing recordings: " + e.getMessage());
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+	
+	@Override
+	protected void onActivityResult (int requestCode, int resultCode, Intent data) {
+		switch(requestCode) {
+		case SEND_RETURN_CODE:
+			recentlySent.clear();
+			break;
+		}
 	}
 
 	@Override

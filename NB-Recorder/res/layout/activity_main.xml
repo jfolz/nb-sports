@@ -25,6 +25,14 @@
             android:layout_centerHorizontal="true"
             android:text="@string/button_rec" />
 
+        <Button
+            android:id="@+id/button_send"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentRight="true"
+            android:text="@string/button_send" />
+
         <TextView
             android:id="@+id/text"
             android:layout_width="match_parent"

@@ -25,7 +25,8 @@ import com.nobullshit.sensor.LocationReader;
 
 public class RecorderApplication extends Application implements SensorEventListener, LocationListener {
 	
-	public static final String APP_DIRECTORY = "nb-recordings";
+	public static final String RECORDING_DIRECTORY = "recordings";
+	public static final String OUTGOING_DIRECTORY = "outgoing";
 	public static final int INDEX_ACCELERATION = 1;
 	public static final int INDEX_LOCATION = 2;
 	
@@ -80,7 +81,7 @@ public class RecorderApplication extends Application implements SensorEventListe
 		count = 0;
 		long now = System.currentTimeMillis();
 		
-		File dir = new File(getExternalFilesDir(null),APP_DIRECTORY);
+		File dir = new File(getExternalFilesDir(null),RECORDING_DIRECTORY);
 		if(!dir.isDirectory()) dir.mkdir();
 		
 		File out = new File(dir, "rec_"+now);
@@ -96,6 +97,9 @@ public class RecorderApplication extends Application implements SensorEventListe
 		locreader.start();
 		start = System.currentTimeMillis();
 		recording = true;
+		
+		//flusher = new OutputFlusher();
+		//new Thread(flusher).start();
 	}
 	
 	public synchronized void stopRecording() throws IOException {
@@ -109,9 +113,11 @@ public class RecorderApplication extends Application implements SensorEventListe
 		if(locreader != null) {
 			locreader.stop();
 		}
-		if(writer != null) {
-			writer.close();
-			writer = null;
+		synchronized(this) {
+			if(writer != null) {
+				writer.close();
+				writer = null;
+			}
 		}
 	}
 
@@ -134,6 +140,14 @@ public class RecorderApplication extends Application implements SensorEventListe
 	public int getCount() {
 		return count;
 	}
+	
+	public File getRecordingDirectory() {
+		return new File(getExternalFilesDir(null), RECORDING_DIRECTORY);
+	}
+	
+	public File getOutgoingDirectory() {
+		return new File(getExternalFilesDir(null), OUTGOING_DIRECTORY);
+	}
 
 	@Override
 	public void onAccuracyChanged(Sensor sensor, int accuracy) {
@@ -145,12 +159,14 @@ public class RecorderApplication extends Application implements SensorEventListe
 		if(recording) {
 			try {
 				synchronized (this) {
-					count++;
-					writer.writeByte(INDEX_ACCELERATION);
-					writer.writeLong(System.currentTimeMillis());
-					writer.writeFloat(event.values[0]);
-					writer.writeFloat(event.values[1]);
-					writer.writeFloat(event.values[2]);
+					if(writer != null) {
+						count++;
+						writer.writeByte(INDEX_ACCELERATION);
+						writer.writeLong(System.currentTimeMillis());
+						writer.writeFloat(event.values[0]);
+						writer.writeFloat(event.values[1]);
+						writer.writeFloat(event.values[2]);
+					}
 				}
 			} catch (IOException e) {
 				this.e = e;
@@ -166,13 +182,15 @@ public class RecorderApplication extends Application implements SensorEventListe
 		if(recording) {
 			try {
 				synchronized (this) {
-					count++;
-					writer.writeByte(INDEX_LOCATION);
-					writer.writeLong(location.getTime());
-					writer.writeDouble(location.getLatitude());
-					writer.writeDouble(location.getLongitude());
-					writer.writeDouble(location.getAltitude());
-					writer.writeFloat(location.getAccuracy());
+					if(writer != null) {
+						count++;
+						writer.writeByte(INDEX_LOCATION);
+						writer.writeLong(location.getTime());
+						writer.writeDouble(location.getLatitude());
+						writer.writeDouble(location.getLongitude());
+						writer.writeDouble(location.getAltitude());
+						writer.writeFloat(location.getAccuracy());
+					}
 				}
 			} catch (IOException e) {
 				this.e = e;

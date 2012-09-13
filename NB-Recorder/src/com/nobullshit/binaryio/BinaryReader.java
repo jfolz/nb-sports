@@ -28,8 +28,7 @@ public class BinaryReader extends DataInputStream {
 	
 	private static InputStream create(File in) throws IOException {
 	    FileInputStream fis = new FileInputStream(in);
-	    BufferedInputStream bis = new BufferedInputStream(fis, 256*1024);
-		GZIPInputStream zis = new GZIPInputStream(bis);
+		GZIPInputStream zis = new GZIPInputStream(fis,1024);
 		return zis;
 	}
 	
