@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.zip.GZIPInputStream;
 
 import android.util.Log;
 
@@ -28,8 +27,8 @@ public class BinaryReader extends DataInputStream {
 	
 	private static InputStream create(File in) throws IOException {
 	    FileInputStream fis = new FileInputStream(in);
-		GZIPInputStream zis = new GZIPInputStream(fis,1024);
-		return zis;
+	    BufferedInputStream bis = new BufferedInputStream(fis,4*1024);
+		return bis;
 	}
 	
 	public String getHeader() {
