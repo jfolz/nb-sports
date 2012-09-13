@@ -15,6 +15,7 @@ import android.util.AttributeSet;
 import android.util.FloatMath;
 import android.util.TypedValue;
 import android.view.View;
+import android.widget.TextView;
 
 import com.nobullshit.text.DecimalFormatter;
 import com.nobullshit.text.Formatter;
@@ -28,14 +29,8 @@ public abstract class Graph extends View {
 	protected static final int defaultAxisStrokeWidth = 2;
 	protected static final float defaultGridStrokeWidth = 0.5F;
 	protected static final float defaultGraphStrokeWidth = 2;
-	protected static final int defaultLabelColor =
-			Resources.getSystem().getColor(android.R.color.primary_text_dark);
-	protected static final int defaultAxisColor =
-			Resources.getSystem().getColor(android.R.color.holo_blue_light);
-	protected static final int defaultGridColor =
-			Resources.getSystem().getColor(android.R.color.holo_blue_light) & 0x80FFFFFF;
-	protected static final float ratio =
-			TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 1, Resources.getSystem().getDisplayMetrics());
+	protected static final float ratio = TypedValue.applyDimension(
+			TypedValue.COMPLEX_UNIT_DIP, 1, Resources.getSystem().getDisplayMetrics());
 
 	// settings
 	protected boolean zeroBaseY = true;
@@ -107,15 +102,19 @@ public abstract class Graph extends View {
 		float graphStrokeWidth = defaultGraphStrokeWidth * ratio;
 		int axpad = Math.round(defaultAxisPadding * ratio);
 		
+		Resources r = getResources();
+		int holoBlue = r.getColor(android.R.color.holo_blue_light);
+		
 		axisPaint = new Paint();
 		axisPaint.setAntiAlias(true);
-		axisPaint.setColor(defaultAxisColor);
+		axisPaint.setColor(holoBlue);
 		axisPaint.setStrokeWidth(axisStrokeWidth);
 		axisPaint.setStrokeCap(Paint.Cap.ROUND);
 		
+		TextView dummy = new TextView(context);
 		labelPaint = new Paint();
 		labelPaint.setAntiAlias(true);
-		labelPaint.setColor(defaultLabelColor);
+		labelPaint.setColor(dummy.getCurrentTextColor());
 		
 		graphPaint = new Paint(axisPaint);
 		graphPaint.setStyle(Paint.Style.STROKE);
@@ -124,7 +123,7 @@ public abstract class Graph extends View {
 		graphPaint.setStrokeWidth(graphStrokeWidth);
 		
 		gridPaint = new Paint();
-		gridPaint.setColor(defaultGridColor);
+		gridPaint.setColor(holoBlue & 0x80FFFFFF);
 		gridPaint.setStrokeWidth(gridStrokeWidth);
 		gridPaint.setStrokeCap(Paint.Cap.BUTT);
 		
@@ -159,11 +158,13 @@ public abstract class Graph extends View {
 			graphPaint.setAntiAlias(arr.getBoolean(R.styleable.Graph_antiAliasGraph, true));
 
 			labelPaint.setTextSize(arr.getDimension(R.styleable.Graph_tickLabelSize, labelPaint.getTextSize()));
-			labelPaint.setColor(arr.getColor(R.styleable.Graph_labelColor, defaultLabelColor));
+			labelPaint.setColor(arr.getColor(R.styleable.Graph_labelColor, labelPaint.getColor()));
 
-			axisPaint.setColor(arr.getColor(R.styleable.Graph_axisColor, defaultAxisColor));
+			axisPaint.setColor(arr.getColor(R.styleable.Graph_axisColor, axisPaint.getColor()));
 			
-			gridPaint.setColor(arr.getColor(R.styleable.Graph_gridColor, defaultGridColor));
+			gridPaint.setColor(arr.getColor(R.styleable.Graph_gridColor, gridPaint.getColor()));
+			
+			arr.recycle();
 		}
 		
 		Rect temp = new Rect();
@@ -343,13 +344,16 @@ public abstract class Graph extends View {
 	}
 	
 	protected void createTriangles() {
-		triangleX = Symbols.triangleRight(axisPaint.getStrokeWidth()*5);
-		float off = (float) (drawAxisAtZeroX ? T.transformY(0) : 0);
-		triangleX.offset(clip.right, clip.bottom - off);
-		
-		triangleY = Symbols.triangleUp(axisPaint.getStrokeWidth()*5);
-		off = (float) (drawAxisAtZeroY ? T.transformX(0) : 0);
-		triangleY.offset(clip.left + off, clip.top);
+		if(drawArrows) {
+			float off;
+			triangleX = Symbols.triangleRight(axisPaint.getStrokeWidth()*5);
+			off = (float) (drawAxisAtZeroX ? T.transformY(0) : 0);
+			triangleX.offset(clip.right, clip.bottom - off);
+			
+			triangleY = Symbols.triangleUp(axisPaint.getStrokeWidth()*5);
+			off = (float) (drawAxisAtZeroY ? T.transformX(0) : 0);
+			triangleY.offset(clip.left + off, clip.top);
+		}
 	}
 
 	protected abstract void createGraph();
@@ -373,7 +377,7 @@ public abstract class Graph extends View {
 	@Override
 	protected void onDraw(Canvas canvas) {
 		super.onDraw(canvas);
-		
+		if(isInEditMode()) prepareForDrawing();
 		drawGrid(canvas);
 		drawAxis(canvas);
 		drawTickLabels(canvas);
