@@ -85,15 +85,6 @@
     android:text="@string/description_2"
     style="@style/description"/>
 
-        <Button
-            android:id="@+id/lock"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerInParent="true"
-            android:enabled="false"
-            android:text="@string/button_unlock"
-            android:visibility="gone" />
-
         <TextView
             android:id="@+id/header_finished_recordings"
             android:layout_width="wrap_content"
@@ -111,6 +102,14 @@
             android:layout_below="@id/header_finished_recordings"
             android:padding="5dp"
             android:text="@string/status_no_recordings" />
+
+        <Button
+            android:id="@+id/lock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerInParent="true"
+            android:text="@string/button_unlock"
+            android:visibility="gone" />
 
     </RelativeLayout>
 
