@@ -9,11 +9,13 @@ import java.util.List;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
+import android.text.format.DateFormat;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -24,20 +26,26 @@ import android.widget.TextView;
 import com.nobullshit.binaryio.BinaryReader;
 import com.nobullshit.grapher.Graph;
 import com.nobullshit.recorder.io.FileUtils;
-import com.nobullshit.text.DecimalFormatter;
+import com.nobullshit.sensor.SensorReader;
+import com.nobullshit.sensor.SensorReaderListener;
 
-public class MainActivity extends Activity implements ListenerListener, OnClickListener {
+public class MainActivity extends Activity implements SensorReaderListener, OnClickListener {
 	
 	public static final int SEND_RETURN_CODE = 23456;
+	public static final String FANCY_DATE_FORMAT = "EEEE, dd. MMMM yyyy, hh:mm";
 	
 	private static final String[] MAIL_ADDRESSES = 
 			new String[]{ "theriddling@gmail.com", "stefan.hemmer86@googlemail.com" };
 	
 	private RecorderApplication app;
-	private TextView text;
+	private TextView statusAcceleration;
+	private TextView statusLocation;
 	private TextView status;
 	private Graph graph;
-	private List<File> recentlySent;
+	private Button buttonRec, buttonLock, buttonSend;
+	private int colorOK;
+	private int colorUnknown;
+	private int colorError;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -47,23 +55,27 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
         setContentView(R.layout.activity_main);
         
         //app = (RecorderApplication) getApplication();
-        text = (TextView) findViewById(R.id.text);
+        statusAcceleration = (TextView) findViewById(R.id.status_acceleration);
+        statusLocation = (TextView) findViewById(R.id.status_location);
         status = (TextView) findViewById(R.id.status);
         
-        Button rec = (Button) findViewById(R.id.button1);
-        rec.setOnClickListener(this);
+        buttonRec = (Button) findViewById(R.id.button_rec);
+        buttonRec.setOnClickListener(this);
         
-        Button lock = (Button) findViewById(R.id.lock);
-        lock.setOnClickListener(this);
+        buttonLock = (Button) findViewById(R.id.lock);
+        buttonLock.setOnClickListener(this);
         
-        Button send = (Button) findViewById(R.id.button_send);
-        send.setOnClickListener(this);
+        buttonSend = (Button) findViewById(R.id.button_send);
+        buttonSend.setOnClickListener(this);
         
-        graph = (Graph) findViewById(R.id.graph);
+        Resources r = getResources();
+        colorOK = r.getColor(R.color.holo_dark_green);
+        colorUnknown = r.getColor(R.color.holo_dark_orange);
+        colorError = r.getColor(R.color.holo_dark_red);
+        
+        /*graph = (Graph) findViewById(R.id.graph);
         graph.setYTickFormatter(new DecimalFormatter(".00"));
-        graph.setOnClickListener(this);
-		
-        recentlySent = new ArrayList<File>();
+        graph.setOnClickListener(this);*/
     }
     
     @Override
@@ -72,6 +84,9 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
     	app.addListener(this);
     	if(app.isRecording() && app.isLocked()) lock();
     	else unlock();
+    	setFinishedRecordings();
+    	setRecordingMode();
+    	checkSensors();
     }
     
     @Override
@@ -96,21 +111,14 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
 	@Override
 	public void onClick(View v) {
 		switch(v.getId()) {
-		case R.id.button1:
+		case R.id.button_rec:
 			try { app.toggleRecording(); }
 			catch (Exception e) { displayError(e); }
-			if(app.isRecording()) {
-		        // now recording, so show activity in front of lockscreen
-		        getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
-			}
-			else {
-				// show lockscreen
-				getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
-			}
+			setRecordingMode();
 			break;
-		case R.id.graph:
+		/*case R.id.graph:
 			graphLastRecording();
-			break;
+			break;*/
 		case R.id.lock:
 			unlock();
 			break;
@@ -118,6 +126,65 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
 			shareFiles();
 			break;
 		}
+	}
+	
+	private void setRecordingMode() {
+		if(app.isRecording()) {
+	        // now recording, so show activity in front of lockscreen
+			statusAcceleration.setVisibility(View.VISIBLE);
+			statusLocation.setVisibility(View.VISIBLE);
+			
+			statusAcceleration.setTextColor(colorUnknown);
+			statusLocation.setTextColor(colorUnknown);
+			
+			buttonRec.setText(R.string.button_rec_stop);
+	        getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
+		}
+		else {
+			statusAcceleration.setVisibility(View.INVISIBLE);
+			statusLocation.setVisibility(View.INVISIBLE);
+			// show lockscreen
+			buttonRec.setText(R.string.button_rec);
+			getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
+			setFinishedRecordings();
+		}
+	}
+	
+	private void checkSensors() {
+    	if(app.getSensorEnabled(SensorReader.TYPE_ACCELEROMETER))
+    		statusAcceleration.setTextColor(colorUnknown);
+    	else
+    		statusAcceleration.setTextColor(colorError);
+    	
+    	if(app.getSensorEnabled(SensorReader.TYPE_FINE_LOCATION))
+    		statusAcceleration.setTextColor(colorUnknown);
+    	else
+    		statusAcceleration.setTextColor(colorError);
+	}
+	
+	private void setFinishedRecordings() {
+		TextView statusRecordings = (TextView) findViewById(R.id.status_finished_recordings);
+		
+		File dir = app.getRecordingDirectory();
+		if(dir.isDirectory()) {
+			File[] files = dir.listFiles();
+			if(files.length > 0) {
+				StringBuilder b = new StringBuilder();
+				for(File f: files) {
+					String name = f.getName();
+					long time = Long.parseLong(name.substring(name.indexOf("_")+1));
+					b.append(DateFormat.format(FANCY_DATE_FORMAT, time));
+					b.append("\n");
+				}
+				statusRecordings.setText(b);
+				statusRecordings.setEnabled(true);
+				return;
+			}
+		}
+		
+		// restore default
+		statusRecordings.setText(R.string.status_no_recordings);
+		statusRecordings.setEnabled(false);
 	}
 
 	private void displayError(Exception e) {
@@ -185,17 +252,17 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
 	}
 	
 	private void lock() {
-		findViewById(R.id.lock).setEnabled(true);
-		findViewById(R.id.button1).setEnabled(false);
-		findViewById(R.id.button_send).setEnabled(false);
+		buttonLock.setVisibility(View.VISIBLE);
+		buttonRec.setEnabled(false);
+		buttonSend.setEnabled(false);
 		// show in front of lockscreen
 		getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
 	}
 	
 	private void unlock() {
-		findViewById(R.id.lock).setEnabled(false);
-		findViewById(R.id.button1).setEnabled(true);
-		findViewById(R.id.button_send).setEnabled(true);
+		buttonLock.setVisibility(View.GONE);
+		buttonRec.setEnabled(true);
+		buttonSend.setEnabled(true);
 		// show lockscreen
 		getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
 	}
@@ -229,13 +296,13 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
 				}
 			}
 		}
+		setFinishedRecordings();
 	}
 	
 	@Override
 	protected void onActivityResult (int requestCode, int resultCode, Intent data) {
 		switch(requestCode) {
 		case SEND_RETURN_CODE:
-			recentlySent.clear();
 			break;
 		}
 	}
@@ -247,18 +314,19 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
 
 	@Override
 	public void onSensorChanged(SensorEvent event) {
-		float x=event.values[0], y=event.values[1], z=event.values[2];
+		/*float x=event.values[0], y=event.values[1], z=event.values[2];
 		text.setText(
 				"x: " + x + "\n"
 			  + "y: " + y + "\n"
 			  + "z: " + z + "\n"
 			  + "n: " + app.getCount() + "\n"
-			  + String.format("%.5f updates/s", (double) app.getCount() / app.getRuntime()));
+			  + String.format("%.5f updates/s", (double) app.getCount() / app.getRuntime()));*/
+		statusAcceleration.setTextColor(colorOK);
 	}
 
 	@Override
 	public void onLocationChanged(Location location) {
-		double latitude = location.getLatitude();
+		/*double latitude = location.getLatitude();
 		double longitude = location.getLongitude();
 		double altitude = location.getAltitude();
 		float accuracy = location.getAccuracy();
@@ -267,15 +335,36 @@ public class MainActivity extends Activity implements ListenerListener, OnClickL
 				"lat:  " + latitude + "\n"
 			  + "long: " + longitude + "\n"
 			  + "alt:  " + altitude + "\n"
-			  + "acc:  " + accuracy);
+			  + "acc:  " + accuracy);*/
+		statusLocation.setTextAppearance(getApplicationContext(), R.style.textOK);
 	}
 
 	@Override
-	public void onProviderDisabled(String provider) {}
+	public void onProviderDisabled(String provider) {
+		statusLocation.setTextColor(colorError);
+	}
 
 	@Override
 	public void onProviderEnabled(String provider) {}
 
 	@Override
 	public void onStatusChanged(String provider, int status, Bundle extras) {}
+
+	@Override
+	public void onSensorStateChanged(int sensor, int state) {
+		switch(sensor) {
+		case SensorReader.TYPE_ACCELEROMETER:
+			if(state == SensorReader.STATE_ENABLED)
+					statusAcceleration.setTextColor(colorUnknown);
+			else if(state == SensorReader.STATE_DISABLED)
+					statusAcceleration.setTextColor(colorError);
+			break;
+		case SensorReader.TYPE_FINE_LOCATION:
+			if(state == SensorReader.STATE_ENABLED)
+					statusLocation.setTextColor(colorUnknown);
+			else if(state == SensorReader.STATE_DISABLED)
+					statusLocation.setTextColor(colorError);
+			break;
+		}
+	}
 }

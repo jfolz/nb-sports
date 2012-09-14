@@ -22,8 +22,10 @@ import android.util.Log;
 import com.nobullshit.binaryio.BinaryWriter;
 import com.nobullshit.sensor.AccelerationReader;
 import com.nobullshit.sensor.LocationReader;
+import com.nobullshit.sensor.SensorReader;
+import com.nobullshit.sensor.SensorReaderListener;
 
-public class RecorderApplication extends Application implements SensorEventListener, LocationListener {
+public class RecorderApplication extends Application implements SensorReaderListener {
 	
 	public static final String RECORDING_DIRECTORY = "recordings";
 	public static final String OUTGOING_DIRECTORY = "outgoing";
@@ -33,7 +35,7 @@ public class RecorderApplication extends Application implements SensorEventListe
 	private BinaryWriter writer;
 	private AccelerationReader accreader;
 	private LocationReader locreader;
-	private List<ListenerListener> listeners;
+	private List<SensorReaderListener> listeners;
 	private Exception e;
 	private boolean recording;
 	private PowerManager.WakeLock lock;
@@ -44,7 +46,7 @@ public class RecorderApplication extends Application implements SensorEventListe
 	@Override
 	public void onCreate() {
 		super.onCreate();
-		listeners = new ArrayList<ListenerListener>(4);
+		listeners = new ArrayList<SensorReaderListener>(4);
 		recording = false;
 		PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
 		lock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RecorderApplication");
@@ -57,11 +59,11 @@ public class RecorderApplication extends Application implements SensorEventListe
 		registerReceiver(receiver, filter);
 	}
 	
-	public void addListener(ListenerListener e) {
+	public void addListener(SensorReaderListener e) {
 		listeners.add(e);
 	}
 	
-	public void removeListener(ListenerListener e) {
+	public void removeListener(SensorReaderListener e) {
 		listeners.remove(e);
 	}
 	
@@ -91,8 +93,14 @@ public class RecorderApplication extends Application implements SensorEventListe
 				new String[] {"time","lat","long","alt","acc"},
 				new String[] {"long","double","double","double","float"});
 		
-		if(accreader == null) accreader = new AccelerationReader(this, this, 100);
-		if(locreader == null) locreader = new LocationReader(this, this, 1000);
+		if(accreader == null) {
+			accreader = new AccelerationReader(this, 100);
+			accreader.registerListener(this);
+		}
+		if(locreader == null) {
+			locreader = new LocationReader(this, 1000);
+			locreader.registerListener(this);
+		}
 		accreader.start();
 		locreader.start();
 		start = System.currentTimeMillis();
@@ -147,6 +155,22 @@ public class RecorderApplication extends Application implements SensorEventListe
 	
 	public File getOutgoingDirectory() {
 		return new File(getExternalFilesDir(null), OUTGOING_DIRECTORY);
+	}
+
+	public boolean getSensorAvailable(int sensor) {
+		switch(sensor) {
+		case SensorReader.TYPE_ACCELEROMETER: return accreader.isAvailable();
+		case SensorReader.TYPE_FINE_LOCATION: return locreader.isAvailable();
+		default: return false;
+		}
+	}
+
+	public boolean getSensorEnabled(int sensor) {
+		switch(sensor) {
+		case SensorReader.TYPE_ACCELEROMETER: return accreader != null && accreader.isEnabled();
+		case SensorReader.TYPE_FINE_LOCATION: return locreader != null && locreader.isEnabled();
+		default: return false;
+		}
 	}
 
 	@Override
@@ -218,6 +242,12 @@ public class RecorderApplication extends Application implements SensorEventListe
 		
 	}
 	
+	@Override
+	public void onSensorStateChanged(int sensor, int state) {
+		if(recording) for(SensorReaderListener l: listeners)
+				l.onSensorStateChanged(sensor, state);
+	}
+
 	private class LockStateReceiver extends BroadcastReceiver {
 
 		@Override

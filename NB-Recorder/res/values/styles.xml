@@ -1,5 +1,24 @@
-<resources>
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <style name="AppTheme" parent="android:Theme" />
+    <style name="AppTheme" parent="android:Theme.Light" />
+    <style name="description" parent="@android:style/Widget.TextView">
+        <item name="android:padding">5dp</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+    <style name="label" parent="@android:style/Widget.TextView">
+        <item name="android:layout_width">24dp</item>
+        <item name="android:layout_height">48dp</item>
+        <item name="android:textSize">32dp</item>
+        <item name="android:gravity">center</item>
+    </style>
+    <style name="textOK" parent="@style/description">
+        <item name="android:textColor">@color/holo_dark_green</item>
+    </style>
+    <style name="textUnknown" parent="@style/description">
+        <item name="android:textColor">#FF8800</item>
+    </style>
+    <style name="textFail" parent="@style/description">
+        <item name="android:textColor">#CC0000</item>
+    </style>
 
 </resources>
