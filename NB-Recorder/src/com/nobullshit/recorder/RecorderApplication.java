@@ -1,51 +1,33 @@
 package com.nobullshit.recorder;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 import android.app.Application;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.hardware.SensorEvent;
-import android.location.Location;
+import android.content.ServiceConnection;
+import android.os.IBinder;
 import android.os.PowerManager;
-import android.util.Log;
+import android.os.RemoteException;
 
-import com.nobullshit.binaryio.BinaryWriter;
-import com.nobullshit.sensor.AccelerationReader;
-import com.nobullshit.sensor.LocationReader;
-import com.nobullshit.sensor.SensorReader;
 import com.nobullshit.sensor.SensorReaderListener;
 
-public class RecorderApplication extends Application implements SensorReaderListener {
+public class RecorderApplication extends Application {
 	
-	public static final String RECORDING_DIRECTORY = "recordings";
-	public static final String OUTGOING_DIRECTORY = "outgoing";
-	public static final int INDEX_ACCELERATION = 1;
-	public static final int INDEX_LOCATION = 2;
-	
-	private BinaryWriter writer;
-	private AccelerationReader accreader;
-	private LocationReader locreader;
 	private List<SensorReaderListener> listeners;
-	private Exception e;
-	private boolean recording;
 	private PowerManager.WakeLock lock;
-	private long start;
-	private int count;
 	private boolean locked;
+	private IRecorderService service;
 	
 	@Override
 	public void onCreate() {
 		super.onCreate();
 		listeners = new ArrayList<SensorReaderListener>(4);
-		recording = false;
-		PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
-		lock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RecorderApplication");
 		locked = false;
 		
 		LockStateReceiver receiver = new LockStateReceiver();
@@ -53,6 +35,12 @@ public class RecorderApplication extends Application implements SensorReaderList
 		filter.addAction(Intent.ACTION_USER_PRESENT);
 		filter.addAction(Intent.ACTION_SCREEN_OFF);
 		registerReceiver(receiver, filter);
+		
+		Intent intent = new Intent();
+		intent.setClass(this, RecorderService.class);
+		ServiceConnection conn = new RecorderConnection();
+		startService(intent);
+		bindService(intent, conn, BIND_AUTO_CREATE);
 	}
 	
 	public void addListener(SensorReaderListener e) {
@@ -63,74 +51,36 @@ public class RecorderApplication extends Application implements SensorReaderList
 		listeners.remove(e);
 	}
 	
-	public void toggleRecording() throws IOException {
-		if(!recording) {
-			startRecording();
-			Log.v("RecorderApplication","recording started");
-		}
-		else {
-			stopRecording();
-			Log.v("RecorderApplication","recording stopped");
+	public void toggleRecording() throws RemoteException {
+		if(service != null) {
+			service.toggleRecording();
 		}
 	}
 
-	public void startRecording() throws IOException {
+	public void startRecording() throws RemoteException {
 		lock.acquire();
-		count = 0;
-		long now = System.currentTimeMillis();
-		
-		File dir = new File(getExternalFilesDir(null),RECORDING_DIRECTORY);
-		if(!dir.isDirectory()) dir.mkdir();
-		
-		File out = new File(dir, "rec_"+now);
-		writer = new BinaryWriter(out,
-				new String[] {"time","x","y","z"},
-				new String[] {"long","float","float","float"},
-				new String[] {"time","lat","long","alt","acc"},
-				new String[] {"long","double","double","double","float"});
-		
-		if(accreader == null) {
-			accreader = new AccelerationReader(this, 100);
-			accreader.registerListener(this);
+		if(service != null) {
+			service.startRecording();
 		}
-		if(locreader == null) {
-			locreader = new LocationReader(this, 1000);
-			locreader.registerListener(this);
-		}
-		accreader.start();
-		locreader.start();
-		start = System.currentTimeMillis();
-		recording = true;
-		
-		//flusher = new OutputFlusher();
-		//new Thread(flusher).start();
 	}
 	
-	public synchronized void stopRecording() throws IOException {
-		recording = false;
+	public void stopRecording() throws RemoteException {
 		lock.release();
-		count = 0;
-		
-		if(accreader != null) {
-			accreader.stop();
+		if(service != null) {
+			service.stopRecording();
 		}
-		if(locreader != null) {
-			locreader.stop();
-		}
-		synchronized(this) {
-			if(writer != null) {
-				writer.close();
-				writer = null;
-			}
-		}
-	}
-
-	public Exception getError() {
-		return e;
 	}
 	
 	public boolean isRecording() {
-		return recording;
+		if(service != null) {
+			try {
+				return service.isRecording();
+			} catch (RemoteException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return false;
 	}
 	
 	public boolean isLocked() {
@@ -138,102 +88,61 @@ public class RecorderApplication extends Application implements SensorReaderList
 	}
 	
 	public double getRuntime() {
-		return recording ? (System.currentTimeMillis() - start) / 1000D : 0;
-	}
-	
-	public int getCount() {
-		return count;
+		if(service != null) {
+			try {
+				return service.getRuntime();
+			} catch (RemoteException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		return 0;
 	}
 	
 	public File getRecordingDirectory() {
-		return new File(getExternalFilesDir(null), RECORDING_DIRECTORY);
+		return new File(getExternalFilesDir(null), RecorderService.RECORDING_DIRECTORY);
 	}
 	
 	public File getOutgoingDirectory() {
-		return new File(getExternalFilesDir(null), OUTGOING_DIRECTORY);
+		return new File(getExternalFilesDir(null), RecorderService.OUTGOING_DIRECTORY);
 	}
 
 	public boolean getSensorAvailable(int sensor) {
-		switch(sensor) {
-		case SensorReader.TYPE_ACCELEROMETER:
-			return accreader.isAvailable();
-		case SensorReader.TYPE_FINE_LOCATION:
-			return locreader.isAvailable();
-		default:
-			return false;
+		if(service != null) {
+			try {
+				return service.getSensorAvailable(sensor);
+			} catch (RemoteException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
+		return false;
 	}
 
 	public boolean getSensorEnabled(int sensor) {
-		switch(sensor) {
-		case SensorReader.TYPE_ACCELEROMETER:
-			return accreader != null && accreader.isEnabled();
-		case SensorReader.TYPE_FINE_LOCATION:
-			return locreader != null && locreader.isEnabled();
-		default: return false;
+		if(service != null) {
+			try {
+				return service.getSensorEnabled(sensor);
+			} catch (RemoteException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
+		return false;
 	}
 
 	public boolean getSensorReading(int sensor) {
-		switch(sensor) {
-		case SensorReader.TYPE_ACCELEROMETER:
-			return accreader != null && accreader.isReading();
-		case SensorReader.TYPE_FINE_LOCATION:
-			return locreader != null && locreader.isReading();
-		default:
-			return false;
-		}
-	}
-
-	public void onSensorChanged(SensorEvent event) {
-		if(recording) {
+		if(service != null) {
 			try {
-				synchronized (this) {
-					if(writer != null) {
-						count++;
-						writer.writeByte(INDEX_ACCELERATION);
-						writer.writeLong(System.currentTimeMillis());
-						writer.writeFloat(event.values[0]);
-						writer.writeFloat(event.values[1]);
-						writer.writeFloat(event.values[2]);
-					}
-				}
-			} catch (IOException e) {
-				this.e = e;
+				return service.getSensorReading(sensor);
+			} catch (RemoteException e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
-	}
-
-	public void onLocationChanged(Location location) {
-		// time, lat, long, alt, acc
-		if(recording) {
-			try {
-				synchronized (this) {
-					if(writer != null) {
-						count++;
-						writer.writeByte(INDEX_LOCATION);
-						writer.writeLong(location.getTime());
-						writer.writeDouble(location.getLatitude());
-						writer.writeDouble(location.getLongitude());
-						writer.writeDouble(location.getAltitude());
-						writer.writeFloat(location.getAccuracy());
-					}
-				}
-			} catch (IOException e) {
-				this.e = e;
-				e.printStackTrace();
-			}
-		}
+		return false;
 	}
 	
-	@Override
-	public void onSensorStateChanged(int sensor, int state) {
-		Log.v("RecorderApplication", "sensor " + sensor + " now in state " + state);
-		if(recording) for(SensorReaderListener l: listeners)
-				l.onSensorStateChanged(sensor, state);
-	}
-
 	private class LockStateReceiver extends BroadcastReceiver {
 
 		@Override
@@ -243,19 +152,19 @@ public class RecorderApplication extends Application implements SensorReaderList
 		}
 		
 	}
+	
+	private class RecorderConnection implements ServiceConnection {
 
-	@Override
-	public void onSensorReading(int sensor, Object reading) {
-		switch(sensor) {
-		case SensorReader.TYPE_ACCELEROMETER:
-			onSensorChanged((SensorEvent) reading);
-			break;
-		case SensorReader.TYPE_FINE_LOCATION:
-			onLocationChanged((Location) reading);
-			break;
+		@Override
+		public void onServiceConnected(ComponentName name, IBinder service) {
+			RecorderApplication.this.service = IRecorderService.Stub.asInterface(service);
 		}
-		if(recording) for(SensorReaderListener l: listeners)
-				l.onSensorReading(sensor,reading);
+
+		@Override
+		public void onServiceDisconnected(ComponentName name) {
+			RecorderApplication.this.service = null;
+		}
+		
 	}
 
 }

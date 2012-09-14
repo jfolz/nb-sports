@@ -185,7 +185,9 @@ public class MainActivity extends Activity implements SensorReaderListener, OnCl
 	private void displayError(Exception e) {
 		StringWriter w = new StringWriter();
 		e.printStackTrace(new PrintWriter(w));
-		status.append(new String(e.getMessage()) + "\n" + w.toString());
+		String msg = e.getMessage();
+		if(msg != null) status.append(msg + "\n");
+		status.append(w.toString());
 		e.printStackTrace();
 	}
 	
