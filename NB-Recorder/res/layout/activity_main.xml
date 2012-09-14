@@ -9,8 +9,9 @@
         android:layout_height="wrap_content" >
 		
         <TextView
-            style="@style/label"
             android:id="@+id/label_1"
+            style="@style/label"
+            android:layout_width="wrap_content"
             android:layout_alignParentLeft="true"
             android:layout_alignParentTop="true"
             android:text="@string/label_1" />
@@ -29,25 +30,34 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_below="@id/button_rec"
-    android:text="@string/description_1" />
+    android:text="@string/description_1" /><TextView
+            android:id="@+id/header_sensors"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_below="@+id/description_1"
+            android:padding="5dp"
+            android:text="@string/header_sensor_status"
+            android:textAppearance="?android:attr/textAppearanceMedium" />
 
         <TextView
-            style="@style/textUnknown"
             android:id="@+id/status_acceleration"
-            android:text="@string/status_acceleration"
-            android:layout_width="match_parent"
+            style="@style/textUnknown"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/description_1"
+            android:layout_below="@id/header_sensors"
+            android:text="@string/status_acceleration"
             android:textSize="16sp"
             android:visibility="invisible" />
 
         <TextView
-            style="@style/textUnknown"
             android:id="@+id/status_location"
-            android:text="@string/status_location"
-            android:layout_width="match_parent"
+            style="@style/textUnknown"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_below="@id/status_acceleration"
+            android:layout_alignTop="@id/status_acceleration"
+            android:layout_toRightOf="@id/status_acceleration"
+            android:text="@string/status_location"
             android:textSize="16sp"
             android:visibility="invisible" />
 
@@ -59,11 +69,10 @@
             android:textSize="16sp"
             android:visibility="gone" />
         
-        
-		
         <TextView
-            style="@style/label"
             android:id="@+id/label_2"
+            style="@style/label"
+            android:layout_width="wrap_content"
             android:layout_alignParentLeft="true"
             android:layout_below="@id/status"
             android:layout_marginTop="16dp"
@@ -110,6 +119,8 @@
             android:layout_centerInParent="true"
             android:text="@string/button_unlock"
             android:visibility="gone" />
+
+        
 
     </RelativeLayout>
 

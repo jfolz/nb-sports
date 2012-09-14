@@ -8,8 +8,8 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.location.LocationProvider;
 import android.os.Bundle;
-import android.util.Log;
 
 public class LocationReader implements LocationListener, SensorReader {
 	
@@ -23,6 +23,7 @@ public class LocationReader implements LocationListener, SensorReader {
 	private int numsats;
 	private int updateRate;
 	private String providerType;
+	private int readingState;
 	
 	public LocationReader(Context context, int updateRate) {
 		this.context = context;
@@ -34,35 +35,27 @@ public class LocationReader implements LocationListener, SensorReader {
 
 	public void onLocationChanged(Location location) {
 		for(SensorReaderListener listener: listeners)
-				listener.onLocationChanged(location);
+				listener.onSensorReading(TYPE_FINE_LOCATION, location);
+		broadcastReadingState(SensorReader.STATE_READING);
 	}
 
 	public void onProviderDisabled(String provider) {
-		for(SensorReaderListener listener: listeners) {
-			listener.onProviderDisabled(provider);
-			listener.onSensorStateChanged(
-					SensorReader.TYPE_FINE_LOCATION,
-					SensorReader.STATE_DISABLED);
-		}
-		Log.v("LocationReader","GPS disabled");
+		readingState = STATE_PROCRASTINATING;
+		broadcastState(SensorReader.STATE_DISABLED);
 	}
 
 	public void onProviderEnabled(String provider) {
-		for(SensorReaderListener listener: listeners) {
-			listener.onProviderEnabled(provider);
-			listener.onSensorStateChanged(
-					SensorReader.TYPE_FINE_LOCATION,
-					SensorReader.STATE_ENABLED);
-		}
-		Log.v("LocationReader","GPS enabled");
+		readingState = STATE_PROCRASTINATING;
+		broadcastState(SensorReader.STATE_ENABLED);
 		start();
 	}
 
 	public void onStatusChanged(String provider, int status, Bundle extras) {
-		for(SensorReaderListener listener: listeners)
-				listener.onStatusChanged(provider, status, extras);
 		switch(status) {
-		case android.location.LocationProvider.AVAILABLE:
+		case LocationProvider.TEMPORARILY_UNAVAILABLE:
+			broadcastReadingState(SensorReader.STATE_PROCRASTINATING);
+			break;
+		case LocationProvider.AVAILABLE:
 			if(provider != null) this.providerType = provider;
 			else this.providerType = PROVIDER_UNKNOWN;
 			if(extras != null) numsats = extras.getInt("satellites",0);
@@ -73,6 +66,18 @@ public class LocationReader implements LocationListener, SensorReader {
 		}
 	}
 	
+	private void broadcastReadingState(int state) {
+		if(state != readingState) {
+			readingState = state;
+			broadcastState(readingState);
+		}
+	}
+	
+	private void broadcastState(int state) {
+		for(SensorReaderListener listener: listeners)
+			listener.onSensorStateChanged(TYPE_FINE_LOCATION, state);
+	}
+	
 	public void start() {
 		start = System.currentTimeMillis();
 		updateCount = 0;
@@ -81,6 +86,8 @@ public class LocationReader implements LocationListener, SensorReader {
 				context.getSystemService(Context.LOCATION_SERVICE);
 		locationManager.requestLocationUpdates(
 				LocationManager.GPS_PROVIDER, updateRate, 0, this);
+		
+		broadcastReadingState(SensorReader.STATE_PROCRASTINATING);
 	}
 	
 	public void stop() {
@@ -89,6 +96,8 @@ public class LocationReader implements LocationListener, SensorReader {
 		LocationManager locationManager = (LocationManager)
 		context.getSystemService(Context.LOCATION_SERVICE);
 		locationManager.removeUpdates(this);
+
+		broadcastReadingState(SensorReader.STATE_PROCRASTINATING);
 	}
 	
 	public int satelliteCount() {
@@ -110,6 +119,11 @@ public class LocationReader implements LocationListener, SensorReader {
 		return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
 	}
 	
+	@Override
+	public boolean isReading() {
+		return readingState == SensorReader.STATE_READING;
+	}
+
 	public float getUpdateRate() {
 		return (float) updateCount / (float) (System.currentTimeMillis() - start) * 1000f;
 	}

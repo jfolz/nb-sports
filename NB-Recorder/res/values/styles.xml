@@ -6,10 +6,11 @@
         <item name="android:textSize">16sp</item>
     </style>
     <style name="label" parent="@android:style/Widget.TextView">
-        <item name="android:layout_width">24dp</item>
+        <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">48dp</item>
         <item name="android:textSize">32dp</item>
         <item name="android:gravity">center</item>
+        <item name="android:paddingLeft">5dp</item>
     </style>
     <style name="textOK" parent="@style/description">
         <item name="android:textColor">@color/holo_dark_green</item>

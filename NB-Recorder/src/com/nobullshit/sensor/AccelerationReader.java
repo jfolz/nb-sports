@@ -26,6 +26,7 @@ public class AccelerationReader extends BroadcastReceiver
 	private int updateCount;
 	private List<SensorReaderListener> listeners;
 	private Context context;
+	private int readingState;
 	
 	public AccelerationReader(Context context, int updateRate) {
 		this.context = context;		
@@ -34,38 +35,49 @@ public class AccelerationReader extends BroadcastReceiver
 	}
 
 	@Override
-	public void onAccuracyChanged(Sensor sensor, int accuracy) {
-		for(SensorReaderListener listener: listeners)
-				listener.onAccuracyChanged(sensor, accuracy);
-	}
+	public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 
 	@Override
 	public void onSensorChanged(SensorEvent e) {
 		for(SensorReaderListener listener: listeners)
-				listener.onSensorChanged(e);
+				listener.onSensorReading(TYPE_ACCELEROMETER, e);
 		updateCount++;
+		
+		if(readingState != SensorReader.STATE_READING)
+			setReadingState(SensorReader.STATE_READING);
+		else if(getUpdateRate() < NOMINAL_UPDATERATE / 2) {
+			float rate = getUpdateRate();
+			Log.v("AccelerationReader",rate + " < " + NOMINAL_UPDATERATE);
+			setReadingState(SensorReader.STATE_PROCRASTINATING);
+		}
 	}
 	
 	public void start() {
-		register();
+		SensorManager m = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+		Sensor s = m.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+		m.registerListener(this, s, SensorManager.SENSOR_DELAY_NORMAL);
+		
 		start = System.currentTimeMillis();
 		updateCount = 0;
 	}
 	
-	public void stop() {
-		unregister();
-		updateCount = 0;
-	}
-	
-	private void register() {
-		SensorManager m = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
-		Sensor s = m.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-		m.registerListener(this, s, SensorManager.SENSOR_DELAY_NORMAL);
-	}
-	
-	private void unregister() {
+	public void stop() {		
 		SensorManager m = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
 		m.unregisterListener(this);
+
+		updateCount = 0;
+		setReadingState(SensorReader.STATE_PROCRASTINATING);
+	}
+	
+	private void setReadingState(int state) {
+		int newState = readingState;
+		if(state == SensorReader.STATE_READING && getUpdateRate() > NOMINAL_UPDATERATE / 2f)
+			newState = SensorReader.STATE_READING;
+		if(newState != readingState) {
+			readingState = newState;
+			for(SensorReaderListener listener: listeners)
+				listener.onSensorStateChanged(TYPE_ACCELEROMETER, readingState);
+		}
 	}
 
 	@Override
@@ -76,8 +88,8 @@ public class AccelerationReader extends BroadcastReceiver
 			Runnable runnable = new Runnable() {
 				public void run() {
 					Log.i(TAG, "reregister listener");
-					unregister();
-					register();
+					stop();
+					start();
 				}
 			};
 
@@ -92,6 +104,10 @@ public class AccelerationReader extends BroadcastReceiver
 	
 	public boolean isEnabled() {
 		return isAvailable();
+	}
+	
+	public boolean isReading() {
+		return readingState == SensorReader.STATE_READING;
 	}
 	
 	public float getUpdateRate() {

@@ -4,13 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.List;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.content.res.Resources;
-import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.location.Location;
 import android.net.Uri;
@@ -23,8 +20,6 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 
-import com.nobullshit.binaryio.BinaryReader;
-import com.nobullshit.grapher.Graph;
 import com.nobullshit.recorder.io.FileUtils;
 import com.nobullshit.sensor.SensorReader;
 import com.nobullshit.sensor.SensorReaderListener;
@@ -41,7 +36,7 @@ public class MainActivity extends Activity implements SensorReaderListener, OnCl
 	private TextView statusAcceleration;
 	private TextView statusLocation;
 	private TextView status;
-	private Graph graph;
+	//private Graph graph;
 	private Button buttonRec, buttonLock, buttonSend;
 	private int colorOK;
 	private int colorUnknown;
@@ -86,7 +81,6 @@ public class MainActivity extends Activity implements SensorReaderListener, OnCl
     	else unlock();
     	setFinishedRecordings();
     	setRecordingMode();
-    	checkSensors();
     }
     
     @Override
@@ -134,11 +128,10 @@ public class MainActivity extends Activity implements SensorReaderListener, OnCl
 			statusAcceleration.setVisibility(View.VISIBLE);
 			statusLocation.setVisibility(View.VISIBLE);
 			
-			statusAcceleration.setTextColor(colorUnknown);
-			statusLocation.setTextColor(colorUnknown);
-			
 			buttonRec.setText(R.string.button_rec_stop);
 	        getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
+
+			checkSensors();
 		}
 		else {
 			statusAcceleration.setVisibility(View.INVISIBLE);
@@ -151,15 +144,17 @@ public class MainActivity extends Activity implements SensorReaderListener, OnCl
 	}
 	
 	private void checkSensors() {
-    	if(app.getSensorEnabled(SensorReader.TYPE_ACCELEROMETER))
-    		statusAcceleration.setTextColor(colorUnknown);
-    	else
-    		statusAcceleration.setTextColor(colorError);
-    	
-    	if(app.getSensorEnabled(SensorReader.TYPE_FINE_LOCATION))
-    		statusAcceleration.setTextColor(colorUnknown);
-    	else
-    		statusAcceleration.setTextColor(colorError);
+		int color = 0;
+		
+    	if(app.getSensorReading(SensorReader.TYPE_ACCELEROMETER)) color = colorOK;
+    	else if(app.getSensorEnabled(SensorReader.TYPE_ACCELEROMETER)) color = colorUnknown;
+    	else color = colorError;
+    	statusAcceleration.setTextColor(color);
+
+    	if(app.getSensorReading(SensorReader.TYPE_FINE_LOCATION)) color = colorOK;
+    	if(app.getSensorEnabled(SensorReader.TYPE_FINE_LOCATION)) color = colorUnknown;
+    	else color = colorError;
+    	statusLocation.setTextColor(color);
 	}
 	
 	private void setFinishedRecordings() {
@@ -198,7 +193,7 @@ public class MainActivity extends Activity implements SensorReaderListener, OnCl
 		status.append(msg + "\n");
 	}
 	
-	private void graphLastRecording() {
+	/*private void graphLastRecording() {
 		if(graph.getSeriesCount() > 0) graph.removeSeries(0);
         File dir = new File(getExternalFilesDir(null),RecorderApplication.RECORDING_DIRECTORY);
 		if(dir.isDirectory()) {
@@ -249,7 +244,7 @@ public class MainActivity extends Activity implements SensorReaderListener, OnCl
 		double[] out = new double[temp.size()];
 		for(double d: temp) out[i++] = d;
 		return out;
-	}
+	}*/
 	
 	private void lock() {
 		buttonLock.setVisibility(View.VISIBLE);
@@ -307,12 +302,6 @@ public class MainActivity extends Activity implements SensorReaderListener, OnCl
 		}
 	}
 
-	@Override
-	public void onAccuracyChanged(Sensor sensor, int accuracy) {
-		status.append(accuracy + "\n");
-	}
-
-	@Override
 	public void onSensorChanged(SensorEvent event) {
 		/*float x=event.values[0], y=event.values[1], z=event.values[2];
 		text.setText(
@@ -324,7 +313,6 @@ public class MainActivity extends Activity implements SensorReaderListener, OnCl
 		statusAcceleration.setTextColor(colorOK);
 	}
 
-	@Override
 	public void onLocationChanged(Location location) {
 		/*double latitude = location.getLatitude();
 		double longitude = location.getLongitude();
@@ -338,33 +326,35 @@ public class MainActivity extends Activity implements SensorReaderListener, OnCl
 			  + "acc:  " + accuracy);*/
 		statusLocation.setTextAppearance(getApplicationContext(), R.style.textOK);
 	}
-
-	@Override
+	
 	public void onProviderDisabled(String provider) {
 		statusLocation.setTextColor(colorError);
 	}
 
 	@Override
-	public void onProviderEnabled(String provider) {}
-
-	@Override
-	public void onStatusChanged(String provider, int status, Bundle extras) {}
-
-	@Override
 	public void onSensorStateChanged(int sensor, int state) {
 		switch(sensor) {
 		case SensorReader.TYPE_ACCELEROMETER:
-			if(state == SensorReader.STATE_ENABLED)
+			if(state == SensorReader.STATE_ENABLED
+			|| state == SensorReader.STATE_PROCRASTINATING)
 					statusAcceleration.setTextColor(colorUnknown);
 			else if(state == SensorReader.STATE_DISABLED)
 					statusAcceleration.setTextColor(colorError);
+			else if(state == SensorReader.STATE_READING)
+					statusAcceleration.setTextColor(colorOK);
 			break;
 		case SensorReader.TYPE_FINE_LOCATION:
-			if(state == SensorReader.STATE_ENABLED)
+			if(state == SensorReader.STATE_ENABLED
+			|| state == SensorReader.STATE_PROCRASTINATING)
 					statusLocation.setTextColor(colorUnknown);
 			else if(state == SensorReader.STATE_DISABLED)
 					statusLocation.setTextColor(colorError);
+			else if(state == SensorReader.STATE_READING)
+					statusLocation.setTextColor(colorOK);
 			break;
 		}
 	}
+
+	@Override
+	public void onSensorReading(int sensor, Object reading) {}
 }

@@ -10,12 +10,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.hardware.Sensor;
 import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
 import android.location.Location;
-import android.location.LocationListener;
-import android.os.Bundle;
 import android.os.PowerManager;
 import android.util.Log;
 
@@ -159,26 +155,36 @@ public class RecorderApplication extends Application implements SensorReaderList
 
 	public boolean getSensorAvailable(int sensor) {
 		switch(sensor) {
-		case SensorReader.TYPE_ACCELEROMETER: return accreader.isAvailable();
-		case SensorReader.TYPE_FINE_LOCATION: return locreader.isAvailable();
-		default: return false;
+		case SensorReader.TYPE_ACCELEROMETER:
+			return accreader.isAvailable();
+		case SensorReader.TYPE_FINE_LOCATION:
+			return locreader.isAvailable();
+		default:
+			return false;
 		}
 	}
 
 	public boolean getSensorEnabled(int sensor) {
 		switch(sensor) {
-		case SensorReader.TYPE_ACCELEROMETER: return accreader != null && accreader.isEnabled();
-		case SensorReader.TYPE_FINE_LOCATION: return locreader != null && locreader.isEnabled();
+		case SensorReader.TYPE_ACCELEROMETER:
+			return accreader != null && accreader.isEnabled();
+		case SensorReader.TYPE_FINE_LOCATION:
+			return locreader != null && locreader.isEnabled();
 		default: return false;
 		}
 	}
 
-	@Override
-	public void onAccuracyChanged(Sensor sensor, int accuracy) {
-		for(SensorEventListener l: listeners) l.onAccuracyChanged(sensor, accuracy);
+	public boolean getSensorReading(int sensor) {
+		switch(sensor) {
+		case SensorReader.TYPE_ACCELEROMETER:
+			return accreader != null && accreader.isReading();
+		case SensorReader.TYPE_FINE_LOCATION:
+			return locreader != null && locreader.isReading();
+		default:
+			return false;
+		}
 	}
 
-	@Override
 	public void onSensorChanged(SensorEvent event) {
 		if(recording) {
 			try {
@@ -197,10 +203,8 @@ public class RecorderApplication extends Application implements SensorReaderList
 				e.printStackTrace();
 			}
 		}
-		if(recording) for(SensorEventListener l: listeners) l.onSensorChanged(event);
 	}
 
-	@Override
 	public void onLocationChanged(Location location) {
 		// time, lat, long, alt, acc
 		if(recording) {
@@ -221,29 +225,11 @@ public class RecorderApplication extends Application implements SensorReaderList
 				e.printStackTrace();
 			}
 		}
-		if(recording) for(LocationListener l: listeners) l.onLocationChanged(location);
-	}
-
-	@Override
-	public void onProviderDisabled(String provider) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void onProviderEnabled(String provider) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void onStatusChanged(String provider, int status, Bundle extras) {
-		// TODO Auto-generated method stub
-		
 	}
 	
 	@Override
 	public void onSensorStateChanged(int sensor, int state) {
+		Log.v("RecorderApplication", "sensor " + sensor + " now in state " + state);
 		if(recording) for(SensorReaderListener l: listeners)
 				l.onSensorStateChanged(sensor, state);
 	}
@@ -256,6 +242,20 @@ public class RecorderApplication extends Application implements SensorReaderList
 			else if(i.getAction().equals(Intent.ACTION_SCREEN_OFF)) locked = true;
 		}
 		
+	}
+
+	@Override
+	public void onSensorReading(int sensor, Object reading) {
+		switch(sensor) {
+		case SensorReader.TYPE_ACCELEROMETER:
+			onSensorChanged((SensorEvent) reading);
+			break;
+		case SensorReader.TYPE_FINE_LOCATION:
+			onLocationChanged((Location) reading);
+			break;
+		}
+		if(recording) for(SensorReaderListener l: listeners)
+				l.onSensorReading(sensor,reading);
 	}
 
 }
