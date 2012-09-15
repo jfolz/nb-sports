@@ -161,7 +161,7 @@ public class MainActivity extends Activity implements SensorReaderListener, OnCl
 		    	else color = colorError;
 		    	statusLocation.setTextColor(color);
 			}
-		}, 200);
+		}, 1000);
 	}
 	
 	private void setFinishedRecordings() {
@@ -338,27 +338,32 @@ public class MainActivity extends Activity implements SensorReaderListener, OnCl
 	}
 
 	@Override
-	public void onSensorStateChanged(int sensor, int state) {
-		switch(sensor) {
-		case SensorReader.TYPE_ACCELEROMETER:
-			if(state == SensorReader.STATE_ENABLED
-			|| state == SensorReader.STATE_PROCRASTINATING)
-					statusAcceleration.setTextColor(colorUnknown);
-			else if(state == SensorReader.STATE_DISABLED)
-					statusAcceleration.setTextColor(colorError);
-			else if(state == SensorReader.STATE_READING)
-					statusAcceleration.setTextColor(colorOK);
-			break;
-		case SensorReader.TYPE_FINE_LOCATION:
-			if(state == SensorReader.STATE_ENABLED
-			|| state == SensorReader.STATE_PROCRASTINATING)
-					statusLocation.setTextColor(colorUnknown);
-			else if(state == SensorReader.STATE_DISABLED)
-					statusLocation.setTextColor(colorError);
-			else if(state == SensorReader.STATE_READING)
-					statusLocation.setTextColor(colorOK);
-			break;
-		}
+	public void onSensorStateChanged(final int sensor, final int state) {
+		runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				switch(sensor) {
+				case SensorReader.TYPE_ACCELEROMETER:
+					if(state == SensorReader.STATE_ENABLED
+					|| state == SensorReader.STATE_PROCRASTINATING)
+							statusAcceleration.setTextColor(colorUnknown);
+					else if(state == SensorReader.STATE_DISABLED)
+							statusAcceleration.setTextColor(colorError);
+					else if(state == SensorReader.STATE_READING)
+							statusAcceleration.setTextColor(colorOK);
+					break;
+				case SensorReader.TYPE_FINE_LOCATION:
+					if(state == SensorReader.STATE_ENABLED
+					|| state == SensorReader.STATE_PROCRASTINATING)
+							statusLocation.setTextColor(colorUnknown);
+					else if(state == SensorReader.STATE_DISABLED)
+							statusLocation.setTextColor(colorError);
+					else if(state == SensorReader.STATE_READING)
+							statusLocation.setTextColor(colorOK);
+					break;
+				}
+			}
+		});
 	}
 
 	@Override

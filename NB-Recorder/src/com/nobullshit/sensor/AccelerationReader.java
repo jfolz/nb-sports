@@ -32,6 +32,7 @@ public class AccelerationReader extends BroadcastReceiver
 		this.context = context;		
 		context.registerReceiver(this, new IntentFilter(Intent.ACTION_SCREEN_OFF));
 		listeners = new ArrayList<SensorReaderListener>();
+		readingState = SensorReader.STATE_PROCRASTINATING;
 	}
 
 	@Override
@@ -42,15 +43,7 @@ public class AccelerationReader extends BroadcastReceiver
 		for(SensorReaderListener listener: listeners)
 				listener.onSensorReading(TYPE_ACCELEROMETER, e);
 		updateCount++;
-		
-		if(readingState != SensorReader.STATE_READING)
-			setReadingState(SensorReader.STATE_READING);
-		else if(getUpdateRate() < NOMINAL_UPDATERATE / 2) {
-			float rate = getUpdateRate();
-			Log.v("AccelerationReader","updaterate low: "
-					+ rate + " Hz (expected " + NOMINAL_UPDATERATE + " Hz)");
-			setReadingState(SensorReader.STATE_PROCRASTINATING);
-		}
+		checkReadingState();
 	}
 	
 	public void start() {
@@ -70,18 +63,28 @@ public class AccelerationReader extends BroadcastReceiver
 		setReadingState(SensorReader.STATE_PROCRASTINATING);
 	}
 	
-	private void setReadingState(int state) {
-		int newState = readingState;
+	private void checkReadingState() {
 		float rate = getUpdateRate();
-		if(state == SensorReader.STATE_READING && rate > NOMINAL_UPDATERATE / 2f) {
+		
+		if(readingState == SensorReader.STATE_READING
+				&& rate < NOMINAL_UPDATERATE / 2f) {
+			Log.v("AccelerationReader","updaterate LOW: "
+					+ rate + " Hz (expected " + NOMINAL_UPDATERATE + " Hz)");
+			setReadingState(SensorReader.STATE_PROCRASTINATING);
+		}
+		else if(readingState == SensorReader.STATE_PROCRASTINATING
+				&& rate > NOMINAL_UPDATERATE / 2f) {
 			Log.v("AccelerationReader","updaterate OK: "
 					+ rate + " Hz (expected " + NOMINAL_UPDATERATE + " Hz)");
-			newState = SensorReader.STATE_READING;
+			setReadingState(SensorReader.STATE_READING);
 		}
-		if(newState != readingState) {
-			readingState = newState;
+	}
+	
+	private void setReadingState(int state) {
+		if(state != readingState) {
+			readingState = state;
 			for(SensorReaderListener listener: listeners)
-				listener.onSensorStateChanged(TYPE_ACCELEROMETER, readingState);
+				listener.onSensorStateChanged(TYPE_ACCELEROMETER, state);
 		}
 	}
 

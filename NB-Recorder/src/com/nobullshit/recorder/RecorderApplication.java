@@ -54,7 +54,9 @@ public class RecorderApplication extends Application {
 	}
 	
 	public void addListener(SensorReaderListener l) {
-		if(!listeners.contains(l)) listeners.add(l);
+		if(!listeners.contains(l)) {
+			listeners.add(l);
+		}
 	}
 	
 	public void removeListener(SensorReaderListener l) {

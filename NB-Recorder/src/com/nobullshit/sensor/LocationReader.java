@@ -74,6 +74,7 @@ public class LocationReader implements LocationListener, SensorReader {
 	}
 	
 	private void broadcastState(int state) {
+		// TODO check how and when state is broadcasted
 		for(SensorReaderListener listener: listeners)
 			listener.onSensorStateChanged(TYPE_FINE_LOCATION, state);
 	}
