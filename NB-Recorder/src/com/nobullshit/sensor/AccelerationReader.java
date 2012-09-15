@@ -47,7 +47,8 @@ public class AccelerationReader extends BroadcastReceiver
 			setReadingState(SensorReader.STATE_READING);
 		else if(getUpdateRate() < NOMINAL_UPDATERATE / 2) {
 			float rate = getUpdateRate();
-			Log.v("AccelerationReader",rate + " < " + NOMINAL_UPDATERATE);
+			Log.v("AccelerationReader","updaterate low: "
+					+ rate + " Hz (expected " + NOMINAL_UPDATERATE + " Hz)");
 			setReadingState(SensorReader.STATE_PROCRASTINATING);
 		}
 	}
@@ -71,8 +72,12 @@ public class AccelerationReader extends BroadcastReceiver
 	
 	private void setReadingState(int state) {
 		int newState = readingState;
-		if(state == SensorReader.STATE_READING && getUpdateRate() > NOMINAL_UPDATERATE / 2f)
+		float rate = getUpdateRate();
+		if(state == SensorReader.STATE_READING && rate > NOMINAL_UPDATERATE / 2f) {
+			Log.v("AccelerationReader","updaterate OK: "
+					+ rate + " Hz (expected " + NOMINAL_UPDATERATE + " Hz)");
 			newState = SensorReader.STATE_READING;
+		}
 		if(newState != readingState) {
 			readingState = newState;
 			for(SensorReaderListener listener: listeners)
@@ -82,8 +87,6 @@ public class AccelerationReader extends BroadcastReceiver
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
-		Log.i(TAG, "onReceive("+intent+")");
-
 		if (intent.getAction().equals(Intent.ACTION_SCREEN_OFF)) {
 			Runnable runnable = new Runnable() {
 				public void run() {

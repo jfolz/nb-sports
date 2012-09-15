@@ -14,15 +14,21 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.util.Log;
 
+import com.nobullshit.sensor.ISensorReaderCallback;
+import com.nobullshit.sensor.Reading;
 import com.nobullshit.sensor.SensorReaderListener;
 
 public class RecorderApplication extends Application {
 	
+	private static final String TAG = "RecorderApplication";
+	
 	private List<SensorReaderListener> listeners;
-	private volatile boolean locked;
+	private boolean locked;
 	private volatile IRecorderService service;
 	private volatile boolean recording;
+	private RecorderCallback callback;
 	
 	@Override
 	public void onCreate() {
@@ -34,6 +40,7 @@ public class RecorderApplication extends Application {
 		IntentFilter filter = new IntentFilter();
 		filter.addAction(Intent.ACTION_USER_PRESENT);
 		filter.addAction(Intent.ACTION_SCREEN_OFF);
+		filter.addAction(Intent.ACTION_SCREEN_ON);
 		registerReceiver(receiver, filter);
 		
 		SharedPreferences prefs = getSharedPreferences(RecorderService.PREFERENCES, MODE_PRIVATE);
@@ -42,14 +49,48 @@ public class RecorderApplication extends Application {
 			startRecording();
 		}
 		else recording = false;
+		
+		callback = new RecorderCallback();
 	}
 	
-	public void addListener(SensorReaderListener e) {
-		listeners.add(e);
+	public void addListener(SensorReaderListener l) {
+		if(!listeners.contains(l)) listeners.add(l);
 	}
 	
-	public void removeListener(SensorReaderListener e) {
-		listeners.remove(e);
+	public void removeListener(SensorReaderListener l) {
+		listeners.remove(l);
+	}
+	
+	private void registerCallback() {
+		if(recording && service != null) {
+			Log.v(TAG,"register sensor callback");
+			try { service.registerCallback(callback); }
+			catch (RemoteException e) { e.printStackTrace(); }
+		}
+	}
+	
+	private void unregisterCallback() {
+		if(listeners.size() == 0 && service != null) {
+			Log.v(TAG,"unregister sensor callback");
+			try { service.unregisterCallback(callback); }
+			catch (RemoteException e) { e.printStackTrace(); }
+		}
+	}
+	
+	public File[] getFinishedRecordings() {
+		File dir = getRecordingDirectory();
+		if(dir.isDirectory()) {
+			File[] all = dir.listFiles();
+			if(!recording && all.length > 0) {
+				return all;
+			}
+			else if(all.length > 1) {
+				File[] finished = new File[all.length-1];
+				for(int i=0; i<finished.length; i++) finished[i] = all[i];
+				return finished;
+			}
+		}
+		return null;
 	}
 	
 	public void toggleRecording() throws RemoteException {
@@ -152,7 +193,13 @@ public class RecorderApplication extends Application {
 		@Override
 		public void onReceive(Context c, Intent i) {
 			if(i.getAction().equals(Intent.ACTION_USER_PRESENT)) locked = false;
-			else if(i.getAction().equals(Intent.ACTION_SCREEN_OFF)) locked = true;
+			else if(i.getAction().equals(Intent.ACTION_SCREEN_OFF)) {
+				unregisterCallback();
+				locked = true;
+			}
+			else if(i.getAction().equals(Intent.ACTION_SCREEN_ON)) {
+				registerCallback();
+			}
 		}
 		
 	}
@@ -161,12 +208,43 @@ public class RecorderApplication extends Application {
 
 		@Override
 		public void onServiceConnected(ComponentName name, IBinder service) {
-			RecorderApplication.this.service = IRecorderService.Stub.asInterface(service);
+			IRecorderService s = IRecorderService.Stub.asInterface(service);
+			RecorderApplication.this.service = s;
+			try {
+				s.registerCallback(callback);
+			} catch (RemoteException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 
 		@Override
 		public void onServiceDisconnected(ComponentName name) {
 			RecorderApplication.this.service = null;
+		}
+		
+	}
+	
+	private class RecorderCallback extends ISensorReaderCallback.Stub {
+
+		@Override
+		public void onSensorStateChanged(int sensor, int state)
+				throws RemoteException {
+			for(SensorReaderListener l: listeners) {
+				l.onSensorStateChanged(sensor, state);
+			}
+		}
+
+		@Override
+		public void onSensorReading(Reading reading) throws RemoteException {
+			for(SensorReaderListener l: listeners) {
+				l.onSensorReading(reading.sensor, reading);
+			}
+		}
+
+		@Override
+		public int getId() throws RemoteException {
+			return 0;
 		}
 		
 	}

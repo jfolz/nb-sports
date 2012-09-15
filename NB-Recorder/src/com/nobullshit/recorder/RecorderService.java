@@ -3,8 +3,6 @@ package com.nobullshit.recorder;
 import java.io.File;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.List;
 
 import android.app.Notification;
 import android.app.PendingIntent;
@@ -23,10 +21,13 @@ import android.os.PowerManager;
 import android.os.RemoteException;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
+import android.util.SparseArray;
 
 import com.nobullshit.binaryio.BinaryWriter;
 import com.nobullshit.sensor.AccelerationReader;
+import com.nobullshit.sensor.ISensorReaderCallback;
 import com.nobullshit.sensor.LocationReader;
+import com.nobullshit.sensor.Reading;
 import com.nobullshit.sensor.SensorReader;
 import com.nobullshit.sensor.SensorReaderListener;
 
@@ -47,10 +48,10 @@ public class RecorderService extends Service implements SensorReaderListener {
 	private static final String SENSOR_THREAD_NAME = "RecorderSensorThread";
 	private static final int NOTIFICATION_ID = 1;
 	
-	private volatile BinaryWriter writer;
+	private BinaryWriter writer;
 	private AccelerationReader accreader;
 	private LocationReader locreader;
-	private List<SensorReaderListener> listeners;
+	private volatile SparseArray<ISensorReaderCallback> listeners;
 	private volatile boolean recording;
 	private PowerManager.WakeLock lock;
 	private long start;
@@ -61,20 +62,14 @@ public class RecorderService extends Service implements SensorReaderListener {
 	public void onCreate() {
 		recording = false;
 	}
-	
-	/*@Override
-	public void onDestroy() {
-		//if(recording) run.handler.sendEmptyMessage(CALL_STOP_RECORDING);
-		// stop the sensors
-		if(recording) stopRecording();
-	}*/
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		if(!recording) {
 			PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
 			lock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RecorderApplication");
-			listeners = new ArrayList<SensorReaderListener>();
+			
+			listeners = new SparseArray<ISensorReaderCallback>();
 
 			run = new RecorderRunnable();
 			new Thread(run, SENSOR_THREAD_NAME).start();
@@ -266,10 +261,19 @@ public class RecorderService extends Service implements SensorReaderListener {
 	@Override
 	public void onSensorStateChanged(int sensor, int state) {
 		Log.v(TAG, "sensor " + sensor + " now in state " + state);
-		if(recording) for(SensorReaderListener l: listeners)
-				l.onSensorStateChanged(sensor, state);
 		
-		// TODO fix reporting
+		if(recording && listeners != null) {
+			int n = listeners.size();
+			for(int i=0; i<n; i++) {
+				int key = listeners.keyAt(i);
+				try {
+					listeners.get(key).onSensorStateChanged(sensor, state);
+				} catch (RemoteException e) {
+					e.printStackTrace();
+					listeners.remove(key);
+				}
+			}
+		}
 	}
 
 	@Override
@@ -282,10 +286,20 @@ public class RecorderService extends Service implements SensorReaderListener {
 			onLocation((Location) reading);
 			break;
 		}
-		if(recording) for(SensorReaderListener l: listeners)
-				l.onSensorReading(sensor,reading);
 		
-		// TODO fix reporting
+		if(recording && listeners != null) {
+			Reading r = new Reading(sensor, reading);
+			int n = listeners.size();
+			for(int i=0; i<n; i++) {
+				int key = listeners.keyAt(i);
+				try {
+					listeners.get(key).onSensorReading(r);
+				} catch (RemoteException e) {
+					listeners.remove(key);
+					e.printStackTrace();
+				}
+			}
+		}
 	}
 
 	private void onAcceleration(SensorEvent event) {
@@ -369,6 +383,27 @@ public class RecorderService extends Service implements SensorReaderListener {
 		@Override
 		public boolean getSensorReading(int sensor) throws RemoteException {
 			return RecorderService.this.getSensorReading(sensor);
+		}
+
+		@Override
+		public void registerCallback(ISensorReaderCallback callback)
+				throws RemoteException {
+			if(listeners != null) {
+				Log.v(TAG,"register callback #" + callback.getId());
+				listeners.put(callback.getId(),callback);
+			}
+		}
+
+		@Override
+		public boolean unregisterCallback(ISensorReaderCallback callback)
+				throws RemoteException {
+			boolean removed = false;
+			if(listeners != null) {
+				Log.v(TAG,"unregister callback #" + callback.getId());
+				removed = listeners.get(callback.getId()) != null;
+				listeners.remove(callback.getId());
+			}
+			return removed;
 		}
 		
 	}

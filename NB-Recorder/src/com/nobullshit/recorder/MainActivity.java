@@ -12,6 +12,7 @@ import android.hardware.SensorEvent;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.text.format.DateFormat;
 import android.view.Menu;
 import android.view.View;
@@ -144,42 +145,45 @@ public class MainActivity extends Activity implements SensorReaderListener, OnCl
 	}
 	
 	private void checkSensors() {
-		int color = 0;
-		
-    	if(app.getSensorReading(SensorReader.TYPE_ACCELEROMETER)) color = colorOK;
-    	else if(app.getSensorEnabled(SensorReader.TYPE_ACCELEROMETER)) color = colorUnknown;
-    	else color = colorError;
-    	statusAcceleration.setTextColor(color);
+		Handler h = new Handler();
+		h.postDelayed(new Runnable() {
+			@Override
+			public void run() {
+				int color = 0;
+				
+		    	if(app.getSensorReading(SensorReader.TYPE_ACCELEROMETER)) color = colorOK;
+		    	else if(app.getSensorEnabled(SensorReader.TYPE_ACCELEROMETER)) color = colorUnknown;
+		    	else color = colorError;
+		    	statusAcceleration.setTextColor(color);
 
-    	if(app.getSensorReading(SensorReader.TYPE_FINE_LOCATION)) color = colorOK;
-    	if(app.getSensorEnabled(SensorReader.TYPE_FINE_LOCATION)) color = colorUnknown;
-    	else color = colorError;
-    	statusLocation.setTextColor(color);
+		    	if(app.getSensorReading(SensorReader.TYPE_FINE_LOCATION)) color = colorOK;
+		    	else if(app.getSensorEnabled(SensorReader.TYPE_FINE_LOCATION)) color = colorUnknown;
+		    	else color = colorError;
+		    	statusLocation.setTextColor(color);
+			}
+		}, 200);
 	}
 	
 	private void setFinishedRecordings() {
 		TextView statusRecordings = (TextView) findViewById(R.id.status_finished_recordings);
 		
-		File dir = app.getRecordingDirectory();
-		if(dir.isDirectory()) {
-			File[] files = dir.listFiles();
-			if(files.length > 0) {
-				StringBuilder b = new StringBuilder();
-				for(File f: files) {
-					String name = f.getName();
-					long time = Long.parseLong(name.substring(name.indexOf("_")+1));
-					b.append(DateFormat.format(FANCY_DATE_FORMAT, time));
-					b.append("\n");
-				}
-				statusRecordings.setText(b);
-				statusRecordings.setEnabled(true);
-				return;
+		File[] files = app.getFinishedRecordings();
+		if(files != null) {
+			StringBuilder b = new StringBuilder();
+			for(File f: files) {
+				String name = f.getName();
+				long time = Long.parseLong(name.substring(name.indexOf("_")+1));
+				b.append(DateFormat.format(FANCY_DATE_FORMAT, time));
+				b.append("\n");
 			}
+			statusRecordings.setText(b);
+			statusRecordings.setEnabled(true);
 		}
-		
-		// restore default
-		statusRecordings.setText(R.string.status_no_recordings);
-		statusRecordings.setEnabled(false);
+		else {
+			// restore default
+			statusRecordings.setText(R.string.status_no_recordings);
+			statusRecordings.setEnabled(false);
+		}
 	}
 
 	private void displayError(Exception e) {
