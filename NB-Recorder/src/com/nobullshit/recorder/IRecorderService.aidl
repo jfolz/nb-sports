@@ -6,9 +6,7 @@ package com.nobullshit.recorder;
 /** Example service interface */
 interface IRecorderService {
 
-	void startRecording();
 	void stopRecording();
-	void toggleRecording();
 	long getRuntime();
 	boolean isRecording();
 	boolean getSensorAvailable(int sensor);

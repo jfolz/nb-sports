@@ -2,15 +2,16 @@ package com.nobullshit.recorder;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
 import android.app.Notification;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.hardware.SensorEvent;
 import android.location.Location;
 import android.os.Handler;
@@ -20,6 +21,7 @@ import android.os.Message;
 import android.os.Parcel;
 import android.os.PowerManager;
 import android.os.RemoteException;
+import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import com.nobullshit.binaryio.BinaryWriter;
@@ -32,62 +34,68 @@ public class RecorderService extends Service implements SensorReaderListener {
 
 	public static final String RECORDING_DIRECTORY = "recordings";
 	public static final String OUTGOING_DIRECTORY = "outgoing";
-	public static final String RETURN_VALUE = "RETURN_VALUE";
-	public static final String ARGUMENT_1 = "ARGUMENT_1";
 	public static final int CALL_START_RECORDING = 1;
 	public static final int CALL_STOP_RECORDING = 2;
 	public static final int CALL_TOGGLE_RECORDING = 3;
-	public static final int CALL_GET_RUNTIME = 4;
-	public static final int CALL_GET_SENSOR_AVAILABLE = 5;
-	public static final int CALL_GET_SENSOR_ENABLED = 6;
-	public static final int CALL_GET_SENSOR_READING = 7;
-	public static final int CALL_IS_RECORDING = 8;
 	public static final int INDEX_ACCELERATION = 1;
 	public static final int INDEX_LOCATION = 2;
+	public static final String PREFERENCES = "RECORDER_SERVICE_PREFERENCES";
+	public static final String PREF_OUTPUT_FILE = "PREF_OUTPUT_FILE";
+	public static final String OUTPUT_FILE_PREFIX = "rec_";
 	
-	private static final String PREFERENCES = "RECORDER_SERVICE_PREFERENCES";
-	private static final String PREF_RECORDING = "PREF_RECORDING";
-	private static final String PREF_OUTPUT_FILE = "PREF_OUTPUT_FILE";
 	private static final String TAG = "RecorderService";
+	private static final String SENSOR_THREAD_NAME = "RecorderSensorThread";
 	private static final int NOTIFICATION_ID = 1;
 	
-	private BinaryWriter writer;
+	private volatile BinaryWriter writer;
 	private AccelerationReader accreader;
 	private LocationReader locreader;
 	private List<SensorReaderListener> listeners;
-	private boolean recording;
+	private volatile boolean recording;
 	private PowerManager.WakeLock lock;
 	private long start;
 	private final IRecorderService.Stub binder = new RecorderBinder();
-	private RecorderRunnable run;
+	private volatile RecorderRunnable run;
 	
 	@Override
 	public void onCreate() {
-		PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
-		lock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RecorderApplication");
-		listeners = new ArrayList<SensorReaderListener>();
-		run = new RecorderRunnable();
-		new Thread(run).start();
-		
-		// TODO make service thread-safe
+		recording = false;
 	}
 	
-	@Override
+	/*@Override
 	public void onDestroy() {
-		
-	}
+		//if(recording) run.handler.sendEmptyMessage(CALL_STOP_RECORDING);
+		// stop the sensors
+		if(recording) stopRecording();
+	}*/
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
-		SharedPreferences prefs = getApplication().getApplicationContext().getSharedPreferences(
-				PREFERENCES, MODE_PRIVATE);
-		
-		if(intent == null) {
-			recording = prefs.getBoolean(PREF_RECORDING, false);
-			String name = prefs.getString(PREF_OUTPUT_FILE, null);
-			if(name != null && recording) {
-				File out = new File(name);
-				startRecording(out);
+		if(!recording) {
+			PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+			lock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RecorderApplication");
+			listeners = new ArrayList<SensorReaderListener>();
+
+			run = new RecorderRunnable();
+			new Thread(run, SENSOR_THREAD_NAME).start();
+			// wait for handler to be created
+			int i=0;
+			do {
+				try { synchronized(run) {
+					run.wait(10);
+					i++;
+				} } catch (InterruptedException e) {}
+			} while(i<100 && run.handler == null);
+
+			// check if handler is available, else stop service
+			if(run.handler != null) {
+				Log.v(TAG, "recording handler successfully created");
+				run.handler.sendEmptyMessage(CALL_START_RECORDING);
+				startForeground(NOTIFICATION_ID, makeNotification());
+			}
+			else {
+				Log.e(TAG, "recording handler was not created in time");
+				stopSelf();
 			}
 		}
 		
@@ -99,15 +107,9 @@ public class RecorderService extends Service implements SensorReaderListener {
 		return binder;
 	}
 	
-	@Override
-	public boolean onUnbind (Intent intent) {
-		if(!isRecording()) stopSelf();
-		return false;
-	}
-	
 	private synchronized void toggleRecording() {
 		if(!recording) {
-			startRecording(null);
+			startRecording();
 			Log.v(TAG,"recording started");
 		}
 		else {
@@ -116,18 +118,18 @@ public class RecorderService extends Service implements SensorReaderListener {
 		}
 	}
 
-	private synchronized void startRecording(File out) {
+	private synchronized void startRecording() {
 		lock.acquire();
 		
-		showNotification();
-		
-		long now = System.currentTimeMillis();
-
-		if(out == null) {
-			File dir = new File(getExternalFilesDir(null),RECORDING_DIRECTORY);
-			if(!dir.isDirectory()) dir.mkdir();
-			out = new File(dir, "rec_"+now);
-		}
+		SharedPreferences prefs = getApplication().getSharedPreferences(PREFERENCES, MODE_PRIVATE);
+		String name = OUTPUT_FILE_PREFIX + System.currentTimeMillis();
+		name = prefs.getString(PREF_OUTPUT_FILE, name);
+		Editor editor = prefs.edit();
+		editor.putString(PREF_OUTPUT_FILE, name);
+		editor.commit();
+		File dir = new File(getExternalFilesDir(null),RECORDING_DIRECTORY);
+		if(!dir.isDirectory()) dir.mkdir();
+		File out = new File(dir, name);
 
 		try {
 			writer = new BinaryWriter(out,
@@ -152,52 +154,72 @@ public class RecorderService extends Service implements SensorReaderListener {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		Log.v(TAG, "recording started");
 	}
 	
 	private synchronized void stopRecording() {
-		recording = false;
-		lock.release();
-		
-		hideNotification();
-		
-		if(accreader != null) {
-			accreader.stop();
-		}
-		if(locreader != null) {
-			locreader.stop();
-		}
-		synchronized(this) {
-			if(writer != null) {
-				try {
-					writer.close();
-				} catch (IOException e) {
-					// TODO broadcast error
-					e.printStackTrace();
-				}
-				writer = null;
+		if(recording) {
+			recording = false;
+			
+			// remove the output file hint
+			SharedPreferences prefs = getApplication().getSharedPreferences(PREFERENCES, MODE_PRIVATE);
+			Editor editor = prefs.edit();
+			editor.remove(PREF_OUTPUT_FILE);
+			editor.commit();
+			
+			if(run.handler != null) {
+				run.handler.removeCallbacks(run);
+				run.handler.getLooper().quit();
 			}
+			
+			if(accreader != null) {
+				accreader.stop();
+				accreader = null;
+			}
+			if(locreader != null) {
+				locreader.stop();
+				accreader = null;
+			}
+			synchronized(this) {
+				if(writer != null) {
+					try {
+						writer.close();
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+					writer = null;
+				}
+			}
+			
+			Log.v(TAG, "recording stopped");
+
+			
+			// release the resources
+			lock.release();
+			listeners = null;
+			run = null;
 		}
-	}
-	
-	@SuppressWarnings("deprecation")
-	private void showNotification(){
-		NotificationManager m =
-				(NotificationManager) getSystemService(NOTIFICATION_SERVICE);	
 		
-	    Notification not = new Notification(
-	    		R.drawable.ic_launcher, "Aufnahme", System.currentTimeMillis());
-	    Intent startingIntent = new Intent(Intent.ACTION_MAIN);
-	    PendingIntent contentIntent = PendingIntent.getActivity(
-	    		this, 0, startingIntent, Notification.FLAG_ONGOING_EVENT);        
-	    not.flags = Notification.FLAG_ONGOING_EVENT;
-	    not.setLatestEventInfo(this, "Application Name", "Application Description", contentIntent);
-	    m.notify(NOTIFICATION_ID, not);
+		stopForeground(true);
+		stopSelf();
 	}
 	
-	private void hideNotification(){
-		NotificationManager m =
-				(NotificationManager) getSystemService(NOTIFICATION_SERVICE);	
-	    m.cancel(NOTIFICATION_ID);
+	private Notification makeNotification(){
+	    Intent startingIntent = new Intent(Intent.ACTION_MAIN);
+	    startingIntent.setPackage(getApplication().getPackageName());
+	    PendingIntent contentIntent = PendingIntent.getActivity(
+	    		this, 0, startingIntent, Notification.FLAG_ONGOING_EVENT);
+		
+	    Notification not = new NotificationCompat.Builder(this)
+	    	.setContentTitle("NB-Recorder")
+			.setContentText("Aufname lŠuft")
+			.setSmallIcon(R.drawable.ic_launcher)
+			.setContentIntent(contentIntent)
+			.build();
+	    not.flags = Notification.FLAG_ONGOING_EVENT;
+	    
+	    return not;
 	}
 	
 	private boolean isRecording() {
@@ -246,6 +268,8 @@ public class RecorderService extends Service implements SensorReaderListener {
 		Log.v(TAG, "sensor " + sensor + " now in state " + state);
 		if(recording) for(SensorReaderListener l: listeners)
 				l.onSensorStateChanged(sensor, state);
+		
+		// TODO fix reporting
 	}
 
 	@Override
@@ -260,6 +284,8 @@ public class RecorderService extends Service implements SensorReaderListener {
 		}
 		if(recording) for(SensorReaderListener l: listeners)
 				l.onSensorReading(sensor,reading);
+		
+		// TODO fix reporting
 	}
 
 	private void onAcceleration(SensorEvent event) {
@@ -315,24 +341,9 @@ public class RecorderService extends Service implements SensorReaderListener {
 		}
 
 		@Override
-		public void startRecording() throws RemoteException {
-			Message msg = Message.obtain();
-			msg.what = CALL_START_RECORDING;
-			run.handler.sendMessage(msg);
-		}
-
-		@Override
 		public void stopRecording() throws RemoteException {
-			Message msg = Message.obtain();
-			msg.what = CALL_STOP_RECORDING;
-			run.handler.sendMessage(msg);
-		}
-
-		@Override
-		public void toggleRecording() throws RemoteException {
-			Message msg = Message.obtain();
-			msg.what = CALL_TOGGLE_RECORDING;
-			run.handler.sendMessage(msg);
+			//RecorderService.this.stopRecording();
+			run.handler.sendEmptyMessage(CALL_STOP_RECORDING);
 		}
 
 		@Override
@@ -370,27 +381,40 @@ public class RecorderService extends Service implements SensorReaderListener {
 		public void run() {
 			Looper.prepare();
 			
-			handler = new RecorderHandler();
+			handler = new RecorderHandler(RecorderService.this);
+			
+			synchronized(this) {
+				this.notifyAll();
+			}
 			
 			Looper.loop();
 		}
 		
 	}
 	
-	private class RecorderHandler extends Handler {
+	private static class RecorderHandler extends Handler {
+		
+		private WeakReference<RecorderService> service;
+		
+		public RecorderHandler(RecorderService service) {
+			this.service = new WeakReference<RecorderService>(service);
+		}
+		
 		public void handleMessage(Message msg) {
+			RecorderService service = this.service.get();
+			if(service == null) return;
+			
 			switch(msg.what) {
 			case CALL_START_RECORDING:
-				startRecording(null);
+				service.startRecording();
 				break;
 			case CALL_STOP_RECORDING:
-				stopRecording();
+				service.stopRecording();
 				break;
 			case CALL_TOGGLE_RECORDING:
-				toggleRecording();
+				service.toggleRecording();
 				break;
 			}
-			msg.recycle();
 		}
 	}
 

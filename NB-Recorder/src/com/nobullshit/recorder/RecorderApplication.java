@@ -11,8 +11,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.os.IBinder;
-import android.os.PowerManager;
 import android.os.RemoteException;
 
 import com.nobullshit.sensor.SensorReaderListener;
@@ -20,9 +20,9 @@ import com.nobullshit.sensor.SensorReaderListener;
 public class RecorderApplication extends Application {
 	
 	private List<SensorReaderListener> listeners;
-	private PowerManager.WakeLock lock;
-	private boolean locked;
-	private IRecorderService service;
+	private volatile boolean locked;
+	private volatile IRecorderService service;
+	private volatile boolean recording;
 	
 	@Override
 	public void onCreate() {
@@ -36,11 +36,12 @@ public class RecorderApplication extends Application {
 		filter.addAction(Intent.ACTION_SCREEN_OFF);
 		registerReceiver(receiver, filter);
 		
-		Intent intent = new Intent();
-		intent.setClass(this, RecorderService.class);
-		ServiceConnection conn = new RecorderConnection();
-		startService(intent);
-		bindService(intent, conn, BIND_AUTO_CREATE);
+		SharedPreferences prefs = getSharedPreferences(RecorderService.PREFERENCES, MODE_PRIVATE);
+		String output = prefs.getString(RecorderService.PREF_OUTPUT_FILE, null);
+		if(output != null) {
+			startRecording();
+		}
+		else recording = false;
 	}
 	
 	public void addListener(SensorReaderListener e) {
@@ -52,35 +53,38 @@ public class RecorderApplication extends Application {
 	}
 	
 	public void toggleRecording() throws RemoteException {
-		if(service != null) {
-			service.toggleRecording();
-		}
+		if(recording) stopRecording();
+		else startRecording();
 	}
 
-	public void startRecording() throws RemoteException {
-		lock.acquire();
-		if(service != null) {
-			service.startRecording();
-		}
+	/**
+	 * Will attempt to start the {@link RecorderService} and bind to it.
+	 * If the service is already running, it will only be bound.
+	 * @return true if service was started successfully
+	 */
+	public boolean startRecording() {
+		Intent intent = new Intent(this, RecorderService.class);
+		ServiceConnection conn = new RecorderConnection();
+		startService(intent);
+		boolean started = bindService(intent, conn, BIND_AUTO_CREATE);
+		recording = started;
+		return started;
 	}
 	
-	public void stopRecording() throws RemoteException {
-		lock.release();
-		if(service != null) {
-			service.stopRecording();
-		}
-	}
-	
-	public boolean isRecording() {
+	public void stopRecording() {
+		recording = false;
 		if(service != null) {
 			try {
-				return service.isRecording();
+				service.stopRecording();
 			} catch (RemoteException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
-		return false;
+	}
+	
+	public boolean isRecording() {
+		return recording;
 	}
 	
 	public boolean isLocked() {
