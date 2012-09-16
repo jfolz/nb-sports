@@ -28,7 +28,7 @@ public class RecorderApplication extends Application {
 	private volatile List<SensorReaderListener> listeners;
 	private volatile IRecorderService service;
 	private volatile boolean recording;
-	private RecorderCallback callback;
+	private volatile RecorderCallback callback;
 	
 	@Override
 	public void onCreate() {
@@ -64,14 +64,19 @@ public class RecorderApplication extends Application {
 	
 	private void registerCallback() {
 		if(recording && service != null) {
-			Log.v(TAG,"register sensor callback");
-			try { service.registerCallback(callback); }
-			catch (RemoteException e) { e.printStackTrace(); }
+			try {
+				service.registerCallback(callback);
+				Log.v(TAG,"sensor callback registered");
+			}
+			catch (RemoteException e) {
+				e.printStackTrace();
+				Log.v(TAG,"could not register sensor callback");
+			}
 		}
 	}
 	
 	private void unregisterCallback() {
-		if(listeners.size() == 0 && service != null) {
+		if(service != null) {
 			Log.v(TAG,"unregister sensor callback");
 			try { service.unregisterCallback(callback); }
 			catch (RemoteException e) { e.printStackTrace(); }
@@ -135,12 +140,8 @@ public class RecorderApplication extends Application {
 	
 	public double getRuntime() {
 		if(service != null) {
-			try {
-				return service.getRuntime();
-			} catch (RemoteException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			try { return service.getRuntime(); }
+			catch (RemoteException e) { e.printStackTrace(); }
 		}
 		return 0;
 	}
@@ -155,36 +156,24 @@ public class RecorderApplication extends Application {
 
 	public boolean getSensorAvailable(int sensor) {
 		if(service != null) {
-			try {
-				return service.getSensorAvailable(sensor);
-			} catch (RemoteException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			try { return service.getSensorAvailable(sensor); }
+			catch (RemoteException e) { e.printStackTrace(); }
 		}
 		return false;
 	}
 
 	public boolean getSensorEnabled(int sensor) {
 		if(service != null) {
-			try {
-				return service.getSensorEnabled(sensor);
-			} catch (RemoteException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			try { return service.getSensorEnabled(sensor); }
+			catch (RemoteException e) { e.printStackTrace(); }
 		}
 		return false;
 	}
 
 	public boolean getSensorReading(int sensor) {
 		if(service != null) {
-			try {
-				return service.getSensorReading(sensor);
-			} catch (RemoteException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			try { return service.getSensorReading(sensor); }
+			catch (RemoteException e) { e.printStackTrace(); }
 		}
 		return false;
 	}

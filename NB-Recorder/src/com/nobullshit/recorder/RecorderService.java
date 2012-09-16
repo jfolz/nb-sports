@@ -65,6 +65,7 @@ public class RecorderService extends Service implements SensorReaderListener {
 		recording = false;
 		PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
 		lock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RecorderApplication");
+		listeners = new LinkedList<ISensorReaderCallback>();
 	}
 	
 	@Override
@@ -75,8 +76,6 @@ public class RecorderService extends Service implements SensorReaderListener {
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		if(!recording) {
-			listeners = new LinkedList<ISensorReaderCallback>();
-
 			run = new RecorderRunnable();
 			new Thread(run, SENSOR_THREAD_NAME).start();
 			// wait for handler to be created
@@ -90,7 +89,6 @@ public class RecorderService extends Service implements SensorReaderListener {
 
 			// check if handler is available, else stop service
 			if(run.handler != null) {
-				Log.v(TAG, "recording handler successfully created");
 				run.handler.sendEmptyMessage(CALL_START_RECORDING);
 				startForeground(NOTIFICATION_ID, makeNotification());
 			}
@@ -118,6 +116,8 @@ public class RecorderService extends Service implements SensorReaderListener {
 	}
 
 	private synchronized void startRecording() {
+		Log.v(TAG, "recording started");
+		
 		lock.acquire();
 		
 		SharedPreferences prefs = getApplication().getSharedPreferences(PREFERENCES, MODE_PRIVATE);
@@ -153,8 +153,6 @@ public class RecorderService extends Service implements SensorReaderListener {
 			broadcastError(e);
 			e.printStackTrace();
 		}
-		
-		Log.v(TAG, "recording started");
 	}
 	
 	private synchronized void stopRecording() {
@@ -196,8 +194,6 @@ public class RecorderService extends Service implements SensorReaderListener {
 			
 			// release the resources
 			if(lock != null && lock.isHeld()) lock.release();
-			listeners = null;
-			run = null;
 		}
 		
 		stopForeground(true);
@@ -411,7 +407,8 @@ public class RecorderService extends Service implements SensorReaderListener {
 			if(listeners != null) {
 				Log.v(TAG,"register callback #" + callback.getId());
 				for(ISensorReaderCallback l: listeners) {
-					if(l.getId() == callback.getId()) return;
+					try { if(l.getId() == callback.getId()) return; }
+					catch(RemoteException e) { unregisterCallback(callback); }
 				}
 				listeners.add(callback);
 			}
@@ -421,11 +418,20 @@ public class RecorderService extends Service implements SensorReaderListener {
 		public boolean unregisterCallback(ISensorReaderCallback callback)
 				throws RemoteException {
 			if(listeners != null) {
-				Log.v(TAG,"unregister callback #" + callback.getId());
-				for(ISensorReaderCallback l: listeners) {
-					if(l.getId() == callback.getId()) {
-						listeners.remove(l);
-						return true;
+				Log.v(TAG,"unregister callback");
+				if(listeners.remove(callback)) {
+					return true;
+				}
+				else {
+					for(ISensorReaderCallback l: listeners) {
+						try {
+							if(l.getId() == callback.getId()) {
+								listeners.remove(l);
+								return true;
+							}
+						} catch(RemoteException e) {
+							listeners.remove(l);
+						}
 					}
 				}
 			}
