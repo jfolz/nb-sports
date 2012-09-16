@@ -2,7 +2,10 @@ package com.nobullshit.recorder;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.lang.ref.WeakReference;
+import java.util.LinkedList;
 
 import android.app.Notification;
 import android.app.PendingIntent;
@@ -21,7 +24,6 @@ import android.os.PowerManager;
 import android.os.RemoteException;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
-import android.util.SparseArray;
 
 import com.nobullshit.binaryio.BinaryWriter;
 import com.nobullshit.sensor.AccelerationReader;
@@ -51,7 +53,7 @@ public class RecorderService extends Service implements SensorReaderListener {
 	private BinaryWriter writer;
 	private AccelerationReader accreader;
 	private LocationReader locreader;
-	private volatile SparseArray<ISensorReaderCallback> listeners;
+	private volatile LinkedList<ISensorReaderCallback> listeners;
 	private volatile boolean recording;
 	private PowerManager.WakeLock lock;
 	private long start;
@@ -61,15 +63,19 @@ public class RecorderService extends Service implements SensorReaderListener {
 	@Override
 	public void onCreate() {
 		recording = false;
+		PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
+		lock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RecorderApplication");
+	}
+	
+	@Override
+	public void onDestroy() {
+		if(lock != null && lock.isHeld()) lock.release();
 	}
 
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		if(!recording) {
-			PowerManager pm = (PowerManager) getSystemService(POWER_SERVICE);
-			lock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "RecorderApplication");
-			
-			listeners = new SparseArray<ISensorReaderCallback>();
+			listeners = new LinkedList<ISensorReaderCallback>();
 
 			run = new RecorderRunnable();
 			new Thread(run, SENSOR_THREAD_NAME).start();
@@ -105,11 +111,9 @@ public class RecorderService extends Service implements SensorReaderListener {
 	private synchronized void toggleRecording() {
 		if(!recording) {
 			startRecording();
-			Log.v(TAG,"recording started");
 		}
 		else {
 			stopRecording();
-			Log.v(TAG,"recording stopped");
 		}
 	}
 
@@ -146,7 +150,7 @@ public class RecorderService extends Service implements SensorReaderListener {
 			start = System.currentTimeMillis();
 			recording = true;
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
+			broadcastError(e);
 			e.printStackTrace();
 		}
 		
@@ -191,7 +195,7 @@ public class RecorderService extends Service implements SensorReaderListener {
 
 			
 			// release the resources
-			lock.release();
+			if(lock != null && lock.isHeld()) lock.release();
 			listeners = null;
 			run = null;
 		}
@@ -257,20 +261,34 @@ public class RecorderService extends Service implements SensorReaderListener {
 			return false;
 		}
 	}
+	
+	private void broadcastError(Exception e) {
+		if(listeners != null) {
+			StringWriter w = new StringWriter();
+			e.printStackTrace(new PrintWriter(w));
+			String msg = e.getMessage();
+			if(msg != null) msg += "\n" + w.toString();
+			else msg = w.toString();
+			
+			for(ISensorReaderCallback l: listeners) {
+				try { l.onError(0, msg); }
+				catch (RemoteException e1) { e1.printStackTrace(); }
+			}
+		}
+	}
 
 	@Override
 	public void onSensorStateChanged(int sensor, int state) {
 		Log.v(TAG, "sensor " + sensor + " now in state " + state);
 		
 		if(recording && listeners != null) {
-			int n = listeners.size();
-			for(int i=0; i<n; i++) {
-				int key = listeners.keyAt(i);
-				try {
-					listeners.get(key).onSensorStateChanged(sensor, state);
+			for(ISensorReaderCallback l: listeners) {
+				try { 
+					l.onSensorStateChanged(sensor, state);
 				} catch (RemoteException e) {
 					e.printStackTrace();
-					listeners.remove(key);
+					try { binder.unregisterCallback(l); }
+					catch (RemoteException e1) { e1.printStackTrace(); }
 				}
 			}
 		}
@@ -289,14 +307,16 @@ public class RecorderService extends Service implements SensorReaderListener {
 		
 		if(recording && listeners != null) {
 			Reading r = new Reading(sensor, reading);
-			int n = listeners.size();
-			for(int i=0; i<n; i++) {
-				int key = listeners.keyAt(i);
+			for(ISensorReaderCallback l: listeners) {
 				try {
-					listeners.get(key).onSensorReading(r);
+					l.onSensorReading(r);
 				} catch (RemoteException e) {
-					listeners.remove(key);
 					e.printStackTrace();
+					try {
+						binder.unregisterCallback(l);
+					} catch (RemoteException e1) {
+						e1.printStackTrace();
+					}
 				}
 			}
 		}
@@ -315,7 +335,7 @@ public class RecorderService extends Service implements SensorReaderListener {
 					}
 				}
 			} catch (IOException e) {
-				// TODO broadcast error
+				broadcastError(e);
 				e.printStackTrace();
 			}
 		}
@@ -336,7 +356,7 @@ public class RecorderService extends Service implements SensorReaderListener {
 					}
 				}
 			} catch (IOException e) {
-				// TODO broadcast error
+				broadcastError(e);
 				e.printStackTrace();
 			}
 		}
@@ -390,20 +410,26 @@ public class RecorderService extends Service implements SensorReaderListener {
 				throws RemoteException {
 			if(listeners != null) {
 				Log.v(TAG,"register callback #" + callback.getId());
-				listeners.put(callback.getId(),callback);
+				for(ISensorReaderCallback l: listeners) {
+					if(l.getId() == callback.getId()) return;
+				}
+				listeners.add(callback);
 			}
 		}
 
 		@Override
 		public boolean unregisterCallback(ISensorReaderCallback callback)
 				throws RemoteException {
-			boolean removed = false;
 			if(listeners != null) {
 				Log.v(TAG,"unregister callback #" + callback.getId());
-				removed = listeners.get(callback.getId()) != null;
-				listeners.remove(callback.getId());
+				for(ISensorReaderCallback l: listeners) {
+					if(l.getId() == callback.getId()) {
+						listeners.remove(l);
+						return true;
+					}
+				}
 			}
-			return removed;
+			return false;
 		}
 		
 	}

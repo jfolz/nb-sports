@@ -1,7 +1,7 @@
 package com.nobullshit.recorder;
 
 import java.io.File;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 import android.app.Application;
@@ -23,9 +23,9 @@ import com.nobullshit.sensor.SensorReaderListener;
 public class RecorderApplication extends Application {
 	
 	private static final String TAG = "RecorderApplication";
-	
-	private List<SensorReaderListener> listeners;
+
 	private boolean locked;
+	private volatile List<SensorReaderListener> listeners;
 	private volatile IRecorderService service;
 	private volatile boolean recording;
 	private RecorderCallback callback;
@@ -33,7 +33,7 @@ public class RecorderApplication extends Application {
 	@Override
 	public void onCreate() {
 		super.onCreate();
-		listeners = new ArrayList<SensorReaderListener>(4);
+		listeners = new LinkedList<SensorReaderListener>();
 		locked = false;
 		
 		LockStateReceiver receiver = new LockStateReceiver();
@@ -54,9 +54,8 @@ public class RecorderApplication extends Application {
 	}
 	
 	public void addListener(SensorReaderListener l) {
-		if(!listeners.contains(l)) {
-			listeners.add(l);
-		}
+		Log.v(TAG,"register listener: " + !listeners.contains(l));
+		if(!listeners.contains(l)) listeners.add(l);
 	}
 	
 	public void removeListener(SensorReaderListener l) {
@@ -210,14 +209,8 @@ public class RecorderApplication extends Application {
 
 		@Override
 		public void onServiceConnected(ComponentName name, IBinder service) {
-			IRecorderService s = IRecorderService.Stub.asInterface(service);
-			RecorderApplication.this.service = s;
-			try {
-				s.registerCallback(callback);
-			} catch (RemoteException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
+			RecorderApplication.this.service = IRecorderService.Stub.asInterface(service);
+			registerCallback();
 		}
 
 		@Override
@@ -232,6 +225,7 @@ public class RecorderApplication extends Application {
 		@Override
 		public void onSensorStateChanged(int sensor, int state)
 				throws RemoteException {
+			Log.v(TAG,"sensor " + sensor + " now in state " + state + ", listeners: " + listeners.size());
 			for(SensorReaderListener l: listeners) {
 				l.onSensorStateChanged(sensor, state);
 			}
@@ -248,6 +242,9 @@ public class RecorderApplication extends Application {
 		public int getId() throws RemoteException {
 			return 0;
 		}
+
+		@Override
+		public void onError(int type, String msg) throws RemoteException {}
 		
 	}
 

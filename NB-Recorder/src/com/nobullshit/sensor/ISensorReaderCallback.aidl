@@ -25,5 +25,12 @@ interface ISensorReaderCallback {
 	 * 		{@link SensorReader.TYPE_FINE_LOCATION} this is a {@link Location}
 	 */
 	void onSensorReading(in Reading reading);
+	
+	/**
+	 * Notify listeners of an error they might need to know of.
+	 * @param type the type of error as defined by {@link SensorReader}
+	 * @param msg a message associated with the error
+	 */
+	void onError(int type, in String msg);
 
 }

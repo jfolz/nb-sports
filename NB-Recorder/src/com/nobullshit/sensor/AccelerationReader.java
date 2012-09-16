@@ -29,8 +29,7 @@ public class AccelerationReader extends BroadcastReceiver
 	private int readingState;
 	
 	public AccelerationReader(Context context, int updateRate) {
-		this.context = context;		
-		context.registerReceiver(this, new IntentFilter(Intent.ACTION_SCREEN_OFF));
+		this.context = context;
 		listeners = new ArrayList<SensorReaderListener>();
 		readingState = SensorReader.STATE_PROCRASTINATING;
 	}
@@ -47,6 +46,7 @@ public class AccelerationReader extends BroadcastReceiver
 	}
 	
 	public void start() {
+		context.registerReceiver(this, new IntentFilter(Intent.ACTION_SCREEN_OFF));
 		SensorManager m = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
 		Sensor s = m.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 		m.registerListener(this, s, SensorManager.SENSOR_DELAY_NORMAL);
@@ -56,6 +56,7 @@ public class AccelerationReader extends BroadcastReceiver
 	}
 	
 	public void stop() {		
+		context.unregisterReceiver(this);
 		SensorManager m = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
 		m.unregisterListener(this);
 

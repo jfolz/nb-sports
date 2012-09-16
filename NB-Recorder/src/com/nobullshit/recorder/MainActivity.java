@@ -14,6 +14,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.text.format.DateFormat;
+import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -30,6 +31,7 @@ public class MainActivity extends Activity implements SensorReaderListener, OnCl
 	public static final int SEND_RETURN_CODE = 23456;
 	public static final String FANCY_DATE_FORMAT = "EEEE, dd. MMMM yyyy, hh:mm";
 	
+	private static final String TAG = "MainActivity";
 	private static final String[] MAIL_ADDRESSES = 
 			new String[]{ "theriddling@gmail.com", "stefan.hemmer86@googlemail.com" };
 	
@@ -339,6 +341,7 @@ public class MainActivity extends Activity implements SensorReaderListener, OnCl
 
 	@Override
 	public void onSensorStateChanged(final int sensor, final int state) {
+		Log.v(TAG,"sensor " + sensor + " now in state " + state);
 		runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
