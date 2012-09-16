@@ -6,6 +6,8 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.hardware.SensorEvent;
@@ -13,9 +15,11 @@ import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.support.v4.view.MenuItemCompat;
 import android.text.format.DateFormat;
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.WindowManager;
@@ -26,7 +30,8 @@ import com.nobullshit.recorder.io.FileUtils;
 import com.nobullshit.sensor.SensorReader;
 import com.nobullshit.sensor.SensorReaderListener;
 
-public class MainActivity extends Activity implements SensorReaderListener, OnClickListener {
+public class MainActivity extends Activity implements SensorReaderListener, 
+		OnClickListener, DialogInterface.OnClickListener {
 	
 	public static final int SEND_RETURN_CODE = 23456;
 	public static final String FANCY_DATE_FORMAT = "EEEE, dd. MMMM yyyy, hh:mm";
@@ -101,11 +106,24 @@ public class MainActivity extends Activity implements SensorReaderListener, OnCl
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.activity_main, menu);
-        return true;
+    	getMenuInflater().inflate(R.menu.activity_main, menu);
+    	MenuItemCompat.setShowAsAction(menu.findItem(R.id.menu_remove_old_files),
+    			MenuItemCompat.SHOW_AS_ACTION_IF_ROOM);
+    	return true;
     }
-
-	@Override
+    
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+    	switch(item.getItemId()) {
+    	case R.id.menu_remove_old_files:
+    		showRemoveOldFilesDialog();
+    		return true;
+    	default:
+    		return false;
+    	}
+    }
+    
+    @Override
 	public void onClick(View v) {
 		switch(v.getId()) {
 		case R.id.button_rec:
@@ -125,6 +143,51 @@ public class MainActivity extends Activity implements SensorReaderListener, OnCl
 		}
 	}
 	
+	@Override
+	public void onClick(DialogInterface dialog, int which) {
+		switch(which) {
+		case AlertDialog.BUTTON_POSITIVE:
+			Log.v("TAG","delete old files");
+	    	File[] files;
+	    	
+	    	files = app.getFinishedRecordings();
+	    	if(files != null) {
+	    		for(int i=0; i<files.length-1; i++) files[i].delete();
+	    	}
+	    	
+	    	File dir = app.getOutgoingDirectory();
+	    	if(dir.isDirectory()) {
+	    		files = dir.listFiles();
+	    		for(int i=0; i<files.length-1; i++) files[i].delete();
+	    	}
+	    	setFinishedRecordings();
+	    	break;
+		}
+	}
+
+	private void showRemoveOldFilesDialog() {
+		int n = 0;
+		File[] files = app.getFinishedRecordings();
+		if(files != null) n = files.length - 1;
+    	File dir = app.getOutgoingDirectory();
+    	if(dir.isDirectory()) {
+    		int m = dir.listFiles().length;
+    		n += m > 0 ? m-1 : 0;
+    	}
+		String msg = getResources().getString(R.string.dialog_delete_old_recordings_message);
+		msg = String.format(msg,n);
+		
+		AlertDialog d = new AlertDialog.Builder(this)
+				.setCancelable(true)
+				.setIcon(android.R.drawable.ic_menu_delete)
+				.setTitle(R.string.dialog_delete_old_recordings_title)
+				.setMessage(msg)
+				.setPositiveButton(android.R.string.yes, this)
+				.setNegativeButton(android.R.string.no, this)
+				.create();
+		d.show();
+	}
+
 	private void setRecordingMode() {
 		if(app.isRecording()) {
 	        // now recording, so show activity in front of lockscreen
