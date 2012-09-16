@@ -193,6 +193,7 @@ public class RecorderService extends Service implements SensorReaderListener {
 
 			
 			// release the resources
+			if(listeners != null) listeners.clear();
 			if(lock != null && lock.isHeld()) lock.release();
 		}
 		
