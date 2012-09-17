@@ -40,8 +40,8 @@ public class RecorderService extends Service implements SensorReaderListener {
 	public static final int CALL_START_RECORDING = 1;
 	public static final int CALL_STOP_RECORDING = 2;
 	public static final int CALL_TOGGLE_RECORDING = 3;
-	public static final int INDEX_ACCELERATION = 1;
-	public static final int INDEX_LOCATION = 2;
+	public static final byte INDEX_ACCELERATION = 1;
+	public static final byte INDEX_LOCATION = 2;
 	public static final String PREFERENCES = "RECORDER_SERVICE_PREFERENCES";
 	public static final String PREF_OUTPUT_FILE = "PREF_OUTPUT_FILE";
 	public static final String OUTPUT_FILE_PREFIX = "rec_";
@@ -132,6 +132,7 @@ public class RecorderService extends Service implements SensorReaderListener {
 
 		try {
 			writer = new BinaryWriter(out,
+					new String[] {"acceleration","location"},
 					new String[] {"time","x","y","z"},
 					new String[] {"long","float","float","float"},
 					new String[] {"time","lat","long","alt","acc"},
@@ -324,11 +325,12 @@ public class RecorderService extends Service implements SensorReaderListener {
 			try {
 				synchronized (this) {
 					if(writer != null) {
-						writer.writeByte(INDEX_ACCELERATION);
+						writer.startEntry(INDEX_ACCELERATION);
 						writer.writeLong(System.currentTimeMillis());
 						writer.writeFloat(event.values[0]);
 						writer.writeFloat(event.values[1]);
 						writer.writeFloat(event.values[2]);
+						writer.endEntry();
 					}
 				}
 			} catch (IOException e) {
@@ -344,12 +346,13 @@ public class RecorderService extends Service implements SensorReaderListener {
 			try {
 				synchronized (this) {
 					if(writer != null) {
-						writer.writeByte(INDEX_LOCATION);
+						writer.startEntry(INDEX_LOCATION);
 						writer.writeLong(location.getTime());
 						writer.writeDouble(location.getLatitude());
 						writer.writeDouble(location.getLongitude());
 						writer.writeDouble(location.getAltitude());
 						writer.writeFloat(location.getAccuracy());
+						writer.endEntry();
 					}
 				}
 			} catch (IOException e) {
