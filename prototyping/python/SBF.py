@@ -59,7 +59,9 @@ def decode(f):
 	series = header["series"]
 	result = {}
 	for s in series:
-		result[s["name"]] = s
+		if "name" in s: name = s["name"]
+		else: name = s["identifier"]
+		result[name] = s
 		lists[s["identifier"]] = []
 		formats[s["identifier"]] = s["unpack_format"]
 	
