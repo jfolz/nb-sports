@@ -1,4 +1,5 @@
 import struct, json
+from numpy import array
 
 def s(fmt): return struct.Struct(fmt)
 
@@ -24,7 +25,6 @@ def _parse_header(h):
 		raise AttributeException("\"" + h + "\" is not a valid header")
 	d = json.loads(h[len(start):])
 	if d["version"] == 2:
-		formats = []
 		for series in d["series"]:
 			f = '>'
 			for t in series["types"]:
@@ -56,9 +56,12 @@ def decode(f):
 	
 	formats = {}
 	lists = {}
-	for series in header["series"]:
-		lists[series["identifier"]] = []
-		formats[series["identifier"]] = series["unpack_format"]
+	series = header["series"]
+	result = {}
+	for s in series:
+		result[s["name"]] = s
+		lists[s["identifier"]] = []
+		formats[s["identifier"]] = s["unpack_format"]
 	
 	while len(data) > 0:
 		identifier = fmt_identifier.unpack(data[:1])[0]
@@ -69,7 +72,19 @@ def decode(f):
 		else: break
 		data = data[f.size:]
 	
-	for series in header["series"]:
-		series["data"] = lists[series["identifier"]]
+	for s in series:
+		s["data"] = lists[s["identifier"]]
 	
-	return header
+	return result
+
+
+
+def get_attribute(series,attribute):
+	i = series["attributes"].index(attribute)
+	return [e[i] for e in series["data"]]
+
+
+
+def get_all_attributes(series):
+	a = array(series["data"])
+	return a.T
