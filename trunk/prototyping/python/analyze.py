@@ -8,29 +8,23 @@ elif not os.path.exists(sys.argv[1]):
 	print 'file not found'
 	sys.exit(1)
 
-data = SBF.decode(sys.argv[1])
+files = []
+for f in sys.argv[1:]:
+	files.append(SBF.decode(f))
 
-for series in data["series"]:
-	if series["identifier"] == 1: acc = series["data"]
-	elif series["identifier"] == 2: loc = series["data"]
-
-tacc = [e[0] for e in acc]
-x = [e[1] for e in acc]
-y = [e[2] for e in acc]
-z = [e[3] for e in acc]
-
-tloc = [e[0] for e in loc]
-lat = [e[1] for e in loc]
-long = [e[2] for e in loc]
-alt = [e[3] for e in loc]
-acc = [e[4] for e in loc]
+tloc,lat,long,alt,acc = range(5)
+tacc,x,y,z = range(4)
 
 plt.hold(1)
-plt.plot(lat,long)
+for f in files:
+	d = SBF.get_all_attributes(f["location"])
+	plt.plot(d[lat],d[long])
 plt.show()
 
-plt.hold(1)
-plt.plot(tacc,x)
-plt.plot(tacc,y)
-plt.plot(tacc,z)
-plt.show()
+for f in files:
+	d = SBF.get_all_attributes(f["acceleration"])
+	plt.hold(1)
+	plt.plot(d[tacc],d[x])
+	plt.plot(d[tacc],d[y])
+	plt.plot(d[tacc],d[z])
+	plt.show()
