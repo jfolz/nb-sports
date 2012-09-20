@@ -9,23 +9,19 @@ def filter_location(loc, n=3, m=None):
 	t,lat,long,alt,acc = SBF.get_all_attributes(loc)
 	pos = array([lat,long])
 	
-	deltapos = array([0,0])
 	macc = acc[:n]
 	mpos = (pos[:,:n] * macc).sum(1) / macc.sum()
+	dpos = array([0,0])
 	
-	filtered = []
 	filtered = [mpos]
-	for i in range(n+1,pos.shape[1]):
-		macc_new = acc[i-n:i]
-		mpos_new = (pos[:,i-n:i] * macc_new).sum(1) / macc_new.sum()
-		a = 1/macc.mean()
-		b = 1/macc_new.mean()
-		deltapos = deltapos * .75 * a + (mpos_new - mpos) * .25 * b
-		deltapos /= a+b
-		macc = macc_new
-		deltat = (t[i-1] - t[i-2]) / 1000
-		mpos = mpos + deltapos * deltat * m
-		filtered.append(mpos)
+	alpha = .25
+	for i in range(n+1,pos.shape[1]+1):
+		macc = acc[i-n:i]
+		mpos_new = (pos[:,i-n:i] * macc).sum(1) / macc.sum()
+		dt = (t[i-1] - t[i-n:i].mean()) / 1000
+		dpos = dpos * alpha + (mpos_new - mpos) * (1-alpha)
+		filtered.append(mpos + dpos * dt)
+		mpos = mpos_new
 	
 	filtered = array(filtered)
 	return lat,long,filtered[:,0],filtered[:,1]
@@ -59,8 +55,10 @@ if command == "acceleration":
 
 elif command == "location":
 	plt.hold(1)
-	for f in files:
-		lat,long,s_lat,s_long = filter_location(f["location"],n=1)
-		#plt.plot(lat,long)
-		plt.plot(s_lat,s_long)
+	colors = ['b','g','r','c']
+	for i,f in enumerate(files):
+		c = colors[i%len(colors)]
+		lat,long,s_lat,s_long = filter_location(f["location"],n=5)
+		plt.plot(lat,long,color=c,linewidth=5,alpha=.3)
+		plt.plot(s_lat,s_long,color=c)
 	plt.show()
