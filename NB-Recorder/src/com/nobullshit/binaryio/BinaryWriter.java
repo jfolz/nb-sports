@@ -42,8 +42,7 @@ public class BinaryWriter extends DataOutputStream {
 	 * @throws IOException
 	 */
 	public BinaryWriter(File out, CharSequence[] ... defs) throws IOException {
-		super(create(out,DEFAULT_BUFFERSIZE));
-		setHeader(defs);
+		this(out,DEFAULT_BUFFERSIZE, defs);
 	}
 
 	/**
@@ -67,11 +66,10 @@ public class BinaryWriter extends DataOutputStream {
 	public BinaryWriter(File out, int buffersize, CharSequence[] ... defs)
 			throws IOException {
 		super(create(out, buffersize));
-		setHeader(defs);
+		setHeader(out, defs);
 	}
-	
-	private void setHeader(CharSequence[] ... defs) throws IOException {
-		if(defs == null || defs.length == 0) return;
+	private void setHeader(File out, CharSequence[] ... defs) throws IOException {
+		if(defs == null || defs.length == 0) this.resume(out);
 		
 		int numSeries = (defs.length - 1) / 2;
 		
@@ -164,5 +162,9 @@ public class BinaryWriter extends DataOutputStream {
 	public void endEntry() throws IOException {
 		// TODO add checksum support in version 3
 	}
-
+	private void resume(File out) throws IOException
+	{
+		BinaryReader reader = new BinaryReader(out);
+		this.names = reader.getNames();
+	}
 }
