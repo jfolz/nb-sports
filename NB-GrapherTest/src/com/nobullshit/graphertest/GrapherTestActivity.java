@@ -1,15 +1,17 @@
 package com.nobullshit.graphertest;
 
-import com.nobullshit.grapher.Graph;
-import com.nobullshit.grapher.R;
-import com.nobullshit.grapher.ScatterGraph;
-import com.nobullshit.grapher.Symbols;
-import com.nobullshit.text.DateFormatter;
+import java.util.Arrays;
 
 import android.app.Activity;
 import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
+
+import com.nobullshit.grapher.Graph;
+import com.nobullshit.grapher.R;
+import com.nobullshit.grapher.ScatterGraph;
+import com.nobullshit.grapher.Symbols;
+import com.nobullshit.text.DateFormatter;
 
 public class GrapherTestActivity extends Activity implements OnClickListener {
 	
@@ -24,11 +26,17 @@ public class GrapherTestActivity extends Activity implements OnClickListener {
         double[] Xs = new double[100];
         double[] Xs2 = new double[n];
     	for(int i=0; i<Xs2.length; i++) Xs2[i] = i;
-        for(int i=0; i<Xs.length; i++) Xs[i] = Math.random()*10000 + System.currentTimeMillis();
+    	long off = 0;
+        for(int i=0; i<Xs.length; i++) {
+        	Xs[i] = System.currentTimeMillis() + off;
+        	off += Math.random()*10000;
+        }
         Graph g = (Graph) findViewById(R.id.graph1);
         addSeries(g,Xs2);
+        Xs2 = Arrays.copyOf(Xs2, Xs2.length);
         Xs2[3] = 3.5;
         addSeries(g,Xs2);
+        Xs2 = Arrays.copyOf(Xs2, Xs2.length);
         Xs2[4] = 4.5;
         addSeries(g,Xs2);
         g.refresh();

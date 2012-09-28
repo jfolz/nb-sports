@@ -27,13 +27,8 @@ public abstract class Series {
 			return;
 		}
 		else if(Xs != null) {
-			int[] sorted = new Argsort(Xs).argsort();
-			this.Xs = new double[Xs.length];
-			this.Ys = new double[Ys.length];
-			for(int i=0; i<Xs.length; i++) {
-				this.Xs[i] = Xs[sorted[i]];
-				this.Ys[i] = Ys[sorted[i]];
-			}
+			this.Xs = Xs;
+			this.Ys = Ys;
 			
 			for(double x: this.Xs) {
 				if(x < minx) minx = x;
@@ -85,29 +80,6 @@ public abstract class Series {
 	}
 	
 	public abstract void draw(Canvas canvas, Paint paint, Rect clip, float alpha);
-
-	private class Argsort implements Comparator<Integer> {
-		private double[] toSort;
-		
-		public Argsort(double[] toSort) {
-			this.toSort = toSort;
-		}
-
-		public int compare(Integer lhs, Integer rhs) {
-			if(toSort[lhs] < toSort[rhs]) return -1;
-			else if(toSort[lhs] > toSort[rhs]) return 1;
-			else return 0;
-		}
-		
-		public int[] argsort() {
-			Integer[] indices = new Integer[toSort.length];
-			for(int i=0; i<indices.length; i++) indices[i] = i;
-			Arrays.sort(indices, this);
-			int[] out = new int[indices.length];
-			for(int i=0; i<indices.length; i++) out[i] = indices[i].intValue();
-			return out;
-		}
-	}
 	
 	protected interface SeriesIterator {
 		
@@ -157,5 +129,36 @@ public abstract class Series {
 			return next++;
 		}
 		
+	}
+	
+	public static class Argsort implements Comparator<Integer> {
+		private double[] toSort;
+		private int[] sortedIndices;
+		
+		public Argsort(double[] toSort) {
+			this.toSort = toSort;
+		}
+
+		public int compare(Integer lhs, Integer rhs) {
+			if(toSort[lhs] < toSort[rhs]) return -1;
+			else if(toSort[lhs] > toSort[rhs]) return 1;
+			else return 0;
+		}
+		
+		public int[] getIndices() {
+			Integer[] indices = new Integer[toSort.length];
+			for(int i=0; i<indices.length; i++) indices[i] = i;
+			Arrays.sort(indices, this);
+			int[] out = new int[indices.length];
+			for(int i=0; i<indices.length; i++) out[i] = indices[i].intValue();
+			return out;
+		}
+		
+		public double[] sort(double[] in) {
+			if(sortedIndices == null) sortedIndices = getIndices();
+			double[] out = new double[in.length];
+			for(int i=0; i<in.length; i++) out[i] = in[sortedIndices[i]];
+			return out;
+		}
 	}
 }
