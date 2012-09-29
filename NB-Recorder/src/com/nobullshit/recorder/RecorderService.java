@@ -204,13 +204,13 @@ public class RecorderService extends Service implements SensorReaderListener {
 	
 	private Notification makeNotification(){
 	    Intent startingIntent = new Intent(Intent.ACTION_MAIN);
-	    startingIntent.setPackage(getApplication().getPackageName());
+	    startingIntent.setClass(getApplicationContext(), MainActivity.class);
 	    PendingIntent contentIntent = PendingIntent.getActivity(
 	    		this, 0, startingIntent, Notification.FLAG_ONGOING_EVENT);
 		
 	    Notification not = new NotificationCompat.Builder(this)
 	    	.setContentTitle("NB-Recorder")
-			.setContentText("Aufname läuft")
+			.setContentText("Aufnahme läuft")
 			.setSmallIcon(R.drawable.ic_launcher)
 			.setContentIntent(contentIntent)
 			.build();

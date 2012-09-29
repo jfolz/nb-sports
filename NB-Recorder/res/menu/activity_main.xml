@@ -4,4 +4,8 @@
         android:orderInCategory="100"
         android:showAsAction="never"
         android:icon="@android:drawable/ic_menu_delete"/>
+    <item android:id="@+id/menu_testbed"
+        android:title="@string/menu_testbed"
+        android:orderInCategory="100"
+        android:showAsAction="never"/>
 </menu>

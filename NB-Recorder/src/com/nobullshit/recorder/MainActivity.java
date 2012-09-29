@@ -118,6 +118,10 @@ public class MainActivity extends Activity implements SensorReaderListener,
     	case R.id.menu_remove_old_files:
     		showRemoveOldFilesDialog();
     		return true;
+    	case R.id.menu_testbed:
+    		Intent intent = new Intent();
+    		intent.setClass(getApplicationContext(), TestbedActivity.class);
+    		startActivity(intent);
     	default:
     		return false;
     	}

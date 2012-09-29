@@ -3,7 +3,8 @@
     <string name="app_name">NB-Recorder</string>
     <string name="menu_remove_old_filed">Alte Aufnahmen löschen</string>
     <string name="button_rec">Aufnahme</string>
-    <string name="button_rec_stop">Stopp</string><string name="button_unlock">Entsperren</string>
+    <string name="button_rec_stop">Stopp</string>
+    <string name="button_unlock">Entsperren</string>
     <string name="button_send">Senden</string>
     <string name="label_1">Schritt 1:</string>
     <string name="label_2">Schritt 2:</string>
@@ -16,6 +17,9 @@
     <string name="status_no_recordings">keine Aufnahmen vorhanden</string>
     <string name="dialog_delete_old_recordings_title">Alte Aufnamen löschen?</string>
     <string name="dialog_delete_old_recordings_message">Es werden %d Aufnahmen und temporäre Dateien gelöscht.\nDie neuste fertige Aufnahme wird nicht gelöscht.</string>
-        
+    <string name="hello_world">Hello world!</string>
+    <string name="menu_settings">Settings</string>
+    <string name="title_activity_testbed">Testbed</string>
+    <string name="menu_testbed">Testbed</string>
 
 </resources>

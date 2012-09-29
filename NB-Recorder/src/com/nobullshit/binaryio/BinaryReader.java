@@ -16,8 +16,7 @@ import org.json.JSONTokener;
 
 public class BinaryReader extends DataInputStream {
 	
-	private String header;
-	private CharSequence[][] headerChar;
+	private CharSequence[][] header;
 		
 	public BinaryReader(File in) throws IOException {
 		super(create(in));
@@ -27,11 +26,12 @@ public class BinaryReader extends DataInputStream {
 			b.append(c);
 			c = (char) readByte();
 		}
-		header = b.toString();
+		String header = b.toString();
 		try {
-			this.parseHeader();
+			parseHeader(header);
 		} catch (JSONException e) {
-			throw new IOException(e);
+			throw new IOException(
+					"Could not parse header: " + header, e);
 		}
 	}
 	
@@ -41,30 +41,26 @@ public class BinaryReader extends DataInputStream {
 		return bis;
 	}
 	
-	public String getHeader() {
-		return header;
-	}
-	
 	public CharSequence[] getNames(){
-		return headerChar[0];
+		return header[0];
 	}
 	
 	public CharSequence[] getAttributes(CharSequence name)
 	{
 		int j = -1;
-		while(headerChar[0][++j] != name);
-		return headerChar[2*j+1];
+		while(header[0][++j] != name);
+		return header[2*j+1];
 	}
 	
 	public CharSequence[] getTypes(CharSequence name)
 	{
 		int j = -1;
-		while(headerChar[0][++j] != name);
-		return headerChar[2*j+2];
+		while(header[0][++j] != name);
+		return header[2*j+2];
 	}
 	
-	private void parseHeader() throws JSONException{
-		String JSONString = header.substring(BinaryWriter.HEADER_BEGIN.length());
+	private void parseHeader(String headerData) throws JSONException{
+		String JSONString = headerData.substring(BinaryWriter.HEADER_BEGIN.length());
 		JSONObject object = (JSONObject) new JSONTokener(JSONString).nextValue();
 		int version = object.getInt(BinaryWriter.KEY_VERSION);
 		if(version == 2)
@@ -85,13 +81,13 @@ public class BinaryReader extends DataInputStream {
 			}
 			Argsort as = new Argsort(identifiers);
 			int[] indices = as.argsort();
-			headerChar = new CharSequence[2*n+1][];
-			headerChar[0] = new CharSequence[n];
+			header = new CharSequence[2*n+1][];
+			header[0] = new CharSequence[n];
 			for(int j = 0; j< n; j++)
 			{
-				headerChar[0][j] = name[indices[j]];
-				headerChar[2*j+1] = attributes[indices[j]];
-				headerChar[2*j+2] = types[indices[j]];
+				header[0][j] = name[indices[j]];
+				header[2*j+1] = attributes[indices[j]];
+				header[2*j+2] = types[indices[j]];
 			}
 		}
 	}
