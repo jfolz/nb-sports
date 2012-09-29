@@ -5,18 +5,17 @@ from numpy import *
 __usage__ = 'usage: python analyze.py location|acceleration PATH [PATH ...]'
 
 def filter_location(loc, n=3, m=None):
-	if not m: m = (n+1) / 2.
 	t,lat,long,alt,acc = SBF.get_all_attributes(loc)
 	pos = array([lat,long])
 	
-	macc = acc[:n]
+	macc = 1 / acc[:n]
 	mpos = (pos[:,:n] * macc).sum(1) / macc.sum()
 	dpos = array([0,0])
 	
 	filtered = [mpos]
 	alpha = .25
 	for i in range(n+1,pos.shape[1]+1):
-		macc = acc[i-n:i]
+		macc = 1 / acc[i-n:i]
 		mpos_new = (pos[:,i-n:i] * macc).sum(1) / macc.sum()
 		dt = (t[i-1] - t[i-n:i].mean()) / 1000
 		dpos = dpos * alpha + (mpos_new - mpos) * (1-alpha)
@@ -48,9 +47,10 @@ if command == "acceleration":
 	for f in files:
 		d = SBF.get_all_attributes(f["acceleration"])
 		plt.hold(1)
-		plt.plot(d[0],d[1])
-		plt.plot(d[0],d[2])
-		plt.plot(d[0],d[3])
+		t = range(len(d[0]))
+		plt.plot(t,d[1])
+		plt.plot(t,d[2])
+		plt.plot(t,d[3])
 		plt.show()
 
 elif command == "location":
