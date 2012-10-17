@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" >
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" >
+
+        <TextView
+            android:id="@+id/bigclock"
+            style="@style/BigClock"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:paddingBottom="8dp"
+            android:paddingTop="8dp"
+            android:text="@string/clock_default" />
+
+        <ToggleButton
+            android:id="@+id/button_mode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@id/bigclock"
+            android:layout_below="@id/bigclock"
+            android:textOff="Stopwatch"
+            android:textOn="Timer" />
+
+        <Button
+            android:id="@+id/button_startstop"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/bigclock"
+            android:layout_toRightOf="@+id/button_mode"
+            android:text="Start" />
+
+        <Button
+            android:id="@+id/button_pause"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/bigclock"
+            android:layout_toRightOf="@+id/button_startstop"
+            android:text="Pause" />
+
+        <Button
+            android:id="@+id/button_reset"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/bigclock"
+            android:layout_toRightOf="@+id/button_pause"
+            android:text="Reset" />
+
+        <LinearLayout
+            android:id="@+id/list_favorites"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@id/bigclock"
+            android:layout_alignRight="@id/bigclock"
+            android:layout_below="@id/button_startstop"
+            android:orientation="vertical" />
+
+        <LinearLayout
+            android:id="@+id/list_recent"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignLeft="@id/bigclock"
+            android:layout_alignRight="@id/bigclock"
+            android:layout_below="@id/list_favorites"
+            android:orientation="vertical" />
+
+    </RelativeLayout>
+
+</ScrollView>

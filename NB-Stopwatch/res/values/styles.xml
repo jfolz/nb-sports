@@ -1,0 +1,60 @@
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <style name="AppTheme" parent="android:Theme" />
+    
+    <style name="BigClock_base">
+        <item name="android:typeface">monospace</item>
+        <item name="android:textSize">60dp</item>
+        <item name="android:gravity">center_horizontal</item>
+    </style>
+    
+    <style name="BigClock" parent="BigClock_base" />
+    
+    <style name="TimePicker_Label">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">2</item>
+        <item name="android:gravity">center</item>
+    </style>
+    
+    <style name="TimePicker_Separator">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_weight">0</item>
+        <item name="android:textSize">20dp</item>
+        <item name="android:typeface">monospace</item>
+        <item name="android:gravity">center</item>
+    </style>
+    
+    <style name="TimePicker_Picker">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:minWidth">40dp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:padding">5dp</item>
+        <item name="android:gravity">center</item>
+    </style>
+    
+    <style name="TimePicker_Button">
+        <item name="android:textColor">@android:color/primary_text_dark</item>
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:minWidth">0dp</item>
+        <item name="android:minHeight">40dp</item>
+        <item name="android:padding">5dp</item>
+    </style>
+    
+    <style name="TimePicker_NumberPicker">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:animateLayoutChanges">false</item>
+        <item name="android:descendantFocusability">blocksDescendants</item>
+        <item name="android:focusableInTouchMode">false</item>
+    </style>
+
+</resources>

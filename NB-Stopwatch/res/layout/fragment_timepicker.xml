@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    	xmlns:nb="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:layout_weight="1"
+    android:orientation="vertical" >
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="horizontal" >
+
+        <TextView
+			style="@style/TimePicker_Label"
+            android:text="@string/label_hours" />
+
+        <TextView
+            style="@style/TimePicker_Separator"
+            android:text="@string/colon"
+            android:visibility="invisible" />
+
+        <TextView
+			style="@style/TimePicker_Label"
+            android:text="@string/label_minutes" />
+
+        <TextView
+            style="@style/TimePicker_Separator"
+            android:text="@string/colon"
+            android:visibility="invisible" />
+
+        <TextView
+			style="@style/TimePicker_Label"
+            android:text="@string/label_seconds" />
+    </LinearLayout>
+	
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" >
+        
+        <com.nobullshit.stopwatch.tools.SimpleNumberPicker
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/spinner_h1"
+            nb:minValue="0"
+            nb:maxValue="9" />
+        
+        <com.nobullshit.stopwatch.tools.SimpleNumberPicker
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/spinner_h2"
+            nb:minValue="0"
+            nb:maxValue="9" />
+
+        <TextView
+            style="@style/TimePicker_Separator"
+            android:text="@string/colon" />
+        
+        <com.nobullshit.stopwatch.tools.SimpleNumberPicker
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/spinner_m1"
+            nb:minValue="0"
+            nb:maxValue="5" />
+        
+        <com.nobullshit.stopwatch.tools.SimpleNumberPicker
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/spinner_m2"
+            nb:minValue="0"
+            nb:maxValue="9" />
+
+        <TextView
+            style="@style/TimePicker_Separator"
+            android:text="@string/colon" />
+        
+        <com.nobullshit.stopwatch.tools.SimpleNumberPicker
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/spinner_s1"
+            nb:minValue="0"
+            nb:maxValue="5" />
+        
+        <com.nobullshit.stopwatch.tools.SimpleNumberPicker
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/spinner_s2"
+            nb:minValue="0"
+            nb:maxValue="9" />
+
+    </LinearLayout>
+    
+</LinearLayout>
