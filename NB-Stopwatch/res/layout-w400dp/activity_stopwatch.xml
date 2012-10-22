@@ -11,10 +11,11 @@
             android:id="@+id/bigclock"
             style="@style/BigClock"
             android:layout_width="wrap_content"
+            android:minWidth="400dp"
             android:layout_height="wrap_content"
             android:layout_centerHorizontal="true"
-            android:paddingBottom="8dp"
-            android:paddingTop="8dp"
+            android:gravity="center"
+            android:padding="8dp"
             android:text="@string/clock_default" />
 
         <ToggleButton
@@ -40,25 +41,23 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_below="@id/bigclock"
-            android:layout_alignRight="@id/bigclock"
+            android:layout_alignRight="@+id/bigclock"
             android:text="@string/button_reset" />
 
         <LinearLayout
             android:id="@+id/list_favorites"
-            android:layout_width="match_parent"
+            android:layout_width="190dp"
             android:layout_height="wrap_content"
             android:layout_alignLeft="@id/bigclock"
-            android:layout_alignRight="@id/bigclock"
             android:layout_below="@id/button_startstop"
             android:orientation="vertical" />
 
         <LinearLayout
             android:id="@+id/list_recent"
-            android:layout_width="match_parent"
+            android:layout_width="190dp"
             android:layout_height="wrap_content"
-            android:layout_alignLeft="@id/bigclock"
             android:layout_alignRight="@id/bigclock"
-            android:layout_below="@id/list_favorites"
+            android:layout_below="@id/button_startstop"
             android:orientation="vertical" />
 
     </RelativeLayout>

@@ -25,6 +25,8 @@
     <string name="picker_plus">+</string>
     <string name="picker_minus">-</string>
     <string name="description_button_favorite">Favorite this time</string>
+    <string name="description_button_startstop">Start/Stop</string>
+    <string name="button_reset">Reset</string>
     <string name="clock_default">00:00:00</string>
 
 </resources>

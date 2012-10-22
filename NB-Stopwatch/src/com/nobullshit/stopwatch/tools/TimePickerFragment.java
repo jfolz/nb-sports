@@ -41,7 +41,7 @@ public class TimePickerFragment extends DialogFragment
     }
     
     private long getSelectedTime(Dialog v) {
-    	if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+    	if(Build.VERSION.SDK_INT > Build.VERSION_CODES.GINGERBREAD_MR1)
     		return getSelectedTime11(v);
     	else
     		return getSelectedTime10(v);
@@ -80,7 +80,7 @@ public class TimePickerFragment extends DialogFragment
     }
     
     private void setPickerTime(long millis, Dialog v) {
-    	if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+    	if(Build.VERSION.SDK_INT > Build.VERSION_CODES.GINGERBREAD_MR1)
     		setPickerTime11(millis, v);
     	else
     		setPickerTime10(millis, v);
@@ -123,7 +123,7 @@ public class TimePickerFragment extends DialogFragment
     }
 
     private void init(Dialog v) {
-		if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB)
+		if(Build.VERSION.SDK_INT > Build.VERSION_CODES.GINGERBREAD_MR1)
 			init11(v);
 		else
 			init10(v);

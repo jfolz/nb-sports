@@ -1,5 +1,6 @@
 package com.nobullshit.stopwatch;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -37,6 +38,7 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
+import com.nobullshit.stopwatch.tools.AnimationHandler;
 import com.nobullshit.stopwatch.tools.Time;
 import com.nobullshit.stopwatch.tools.TimePickerFragment;
 
@@ -59,8 +61,9 @@ public class StopwatchActivity extends FragmentActivity
 	public static final int STATE_IDLE = 1;
 	public static final int STATE_RUNNING = 2;
 	public static final int STATE_PAUSED = 4;
-	
+
 	public static final int DEFAULT_ALARM_DURATION = 6000;
+	public static final int DEFAULT_TRANSITION_DURATION = 500;
 	public static final String DEFAULT_FAVORITE_TIMES = "[0]";
 	public static final String EMPTY_JSON_ARRAY = "[]";
 	
@@ -72,6 +75,7 @@ public class StopwatchActivity extends FragmentActivity
 	private int maxRecentTimes = 5;
 	private int mode = MODE_STOPWATCH;
 	private int state = STATE_IDLE;
+	private ImageButton button_startstop;
 	private ViewGroup list_favorite;
 	private ViewGroup list_recent;
 	private List<Long> times_favorite;
@@ -96,11 +100,8 @@ public class StopwatchActivity extends FragmentActivity
         ToggleButton button_mode = (ToggleButton) findViewById(R.id.button_mode);
         button_mode.setOnClickListener(this);
         
-        Button button_start = (Button) findViewById(R.id.button_startstop);
-        button_start.setOnClickListener(this);
-        
-        Button button_pause = (Button) findViewById(R.id.button_pause);
-        button_pause.setOnClickListener(this);
+        button_startstop = (ImageButton) findViewById(R.id.button_startstop);
+        button_startstop.setOnClickListener(this);
         
         Button button_reset = (Button) findViewById(R.id.button_reset);
         button_reset.setOnClickListener(this);
@@ -122,13 +123,17 @@ public class StopwatchActivity extends FragmentActivity
         setBigClock(selectedTime - elapsedTime);
     	
     	button_mode.setChecked(mode == MODE_TIMER);
+    	if(state == STATE_RUNNING)
+    		button_startstop.setImageResource(android.R.drawable.ic_media_pause);
+    	else if(state == STATE_IDLE || state == STATE_PAUSED)
+    		button_startstop.setImageResource(android.R.drawable.ic_media_play);
     	
     	try {
         	JSONTokener json = new JSONTokener(prefs.getString(KEY_TIMES_FAVORITE,
         			DEFAULT_FAVORITE_TIMES));
 			JSONArray array = (JSONArray) json.nextValue();
 			for(int i=array.length()-1; i>=0; i--) {
-				addTime(list_favorite, array.getLong(i));
+				addTime(list_favorite, array.getLong(i), false);
 			}
 		} catch (JSONException e) {}
     	
@@ -137,7 +142,7 @@ public class StopwatchActivity extends FragmentActivity
         			EMPTY_JSON_ARRAY));
 			JSONArray array = (JSONArray) json.nextValue();
 			for(int i=array.length()-1; i>=0; i--) {
-				addTime(list_recent, array.getLong(i));
+				addTime(list_recent, array.getLong(i), false);
 			}
 		} catch (JSONException e) {}
     }
@@ -147,7 +152,7 @@ public class StopwatchActivity extends FragmentActivity
     	super.onResume();
     	
     	if(state == STATE_RUNNING) {
-    		resume(false);
+    		startCountdown();
         	AlarmManager m = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
         	m.cancel(createAlarmIntent());
     	}
@@ -159,7 +164,7 @@ public class StopwatchActivity extends FragmentActivity
     	
     	if(state == STATE_RUNNING) {
     		getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
-    		pause(false);
+    		stopCountdown();
         	
     		
         	if(selectedTime - elapsedTime > 0) {
@@ -246,22 +251,18 @@ public class StopwatchActivity extends FragmentActivity
 			break;
 		
 		case R.id.button_mode:
-			if(((ToggleButton) v).isChecked()) mode = MODE_TIMER;
-			else mode = MODE_STOPWATCH;
+			if(mode == MODE_STOPWATCH) mode = MODE_TIMER;
+			else if(mode == MODE_TIMER) mode = MODE_STOPWATCH;
 			break;
 		
 		case R.id.button_startstop:
-			if(state == STATE_IDLE || state == STATE_PAUSED) start(true);
-			break;
-		
-		case R.id.button_pause:
-			if(state == STATE_RUNNING) pause(true);
+			if(state == STATE_IDLE || state == STATE_PAUSED) start();
+			else if(state == STATE_RUNNING) stop();
 			break;
 		
 		case R.id.button_reset:
-			reset(true);
+			reset();
 			break;
-		
 		}
 	}
 
@@ -271,80 +272,57 @@ public class StopwatchActivity extends FragmentActivity
 	    fragment.show(getSupportFragmentManager(), TAG_TIMEPICKER);
 	}
 
-	private void start(boolean setState) {
+	private void start() {
 		if(mode == MODE_TIMER && elapsedTime >= selectedTime) return;
 		
-		getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
-		
 		startTime = System.currentTimeMillis();
-		watchTask = new WatchTask();
-		watchTask.execute();
+		state = STATE_RUNNING;
 		
-		list_favorite.setEnabled(false);
-		list_recent.setEnabled(false);
-		
-		if(setState) {
-			state = STATE_RUNNING;
-		}
+		getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
+		button_startstop.setImageResource(android.R.drawable.ic_media_pause);
+		startCountdown();
 		showNotification();
+	}
+
+	private void stop() {
+		state = STATE_PAUSED;
+		long now = System.currentTimeMillis();
+		elapsedTime += now - startTime;
+		startTime = now;
+
+		getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
+		button_startstop.setImageResource(android.R.drawable.ic_media_play);
+		stopCountdown();
+		removeNotification();
+	}
+
+	private void reset() {
+		elapsedTime = 0;
+		state = STATE_IDLE;
+
+		getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
+		button_startstop.setImageResource(android.R.drawable.ic_media_play);
+		stopCountdown();
+		removeNotification();
+		setBigClock(selectedTime);
 	}
 	
-	private void resume(boolean setState) {
-		getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
-		
-		elapsedTime += System.currentTimeMillis() - startTime;
-		startTime = System.currentTimeMillis();
+	private void startCountdown() {		
 		watchTask = new WatchTask();
 		watchTask.execute();
 		
 		list_favorite.setEnabled(false);
 		list_recent.setEnabled(false);
-		
-		if(setState) {
-			state = STATE_RUNNING;
-		}
-		showNotification();
 	}
-
-	private void pause(boolean setState) {
-		getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
-		
-		elapsedTime += System.currentTimeMillis() - startTime;
-		startTime = System.currentTimeMillis();
+	
+	private void stopCountdown() {		
 		if(watchTask != null) {
 			watchTask.cancel(true);
 			watchTask = null;
 		}
-
-		list_favorite.setEnabled(true);
-		list_recent.setEnabled(true);
-		
-		if(setState) {
-			state = STATE_PAUSED;
-			removeNotification();
-		}
-		else if(state == STATE_RUNNING) {
-			showNotification();
-		}
-	}
-
-	private void reset(boolean setState) {
-		getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED);
-		
-		elapsedTime = 0;
-		if(watchTask != null) {
-			watchTask.cancel(true);
-			watchTask = null;
-		}
-		setBigClock(selectedTime);
 		
 		list_favorite.setEnabled(true);
 		list_recent.setEnabled(true);
-		
-		if(setState) {
-			state = STATE_IDLE;
-			removeNotification();
-		}
 	}
 
 	private void showNotification() {
@@ -391,23 +369,49 @@ public class StopwatchActivity extends FragmentActivity
 	}
 
 	private void favoriteToRecent(long time) {
+		int n = times_favorite.size();
 		int pos = times_favorite.indexOf(time);
 		View item = list_favorite.getChildAt(pos);
 		
+		if(times_recent.size() > maxRecentTimes - 1) {
+			int last = list_recent.getChildCount() - 1;
+			times_recent.remove(last);
+			list_recent.removeViewAt(last);
+		}
+		
 		times_favorite.remove(pos);
-		list_favorite.removeViewAt(pos);
 		times_recent.add(0,time);
-		list_recent.addView(item,0);
+		
+		if(pos < n-1) animateItem(item, list_favorite, list_recent, 0);
+		else {
+			list_favorite.removeViewAt(pos);
+			list_recent.addView(item,0);
+		}
 	}
 
 	private void recentToFavorite(long time) {
+		int n = times_favorite.size();
 		int pos = times_recent.indexOf(time);
 		View item = list_recent.getChildAt(pos);
 		
 		times_recent.remove(pos);
-		list_recent.removeViewAt(pos);
-		times_favorite.add(0,time);
-		list_favorite.addView(item,0);
+		
+		int newpos = Collections.binarySearch(times_favorite, time);
+		if(newpos < 0) {
+			newpos = -newpos-1;
+			times_favorite.add(newpos,time);
+		}
+		
+		if(pos > 0 || newpos < n)
+			animateItem(item, list_recent, list_favorite, newpos);
+		else {
+			list_recent.removeViewAt(pos);
+			list_favorite.addView(item,newpos);
+		}
+	}
+	
+	private void animateItem(View item, ViewGroup from, ViewGroup to, int newpos) {
+		AnimationHandler.animate(this, item, from, to, newpos);
 	}
 
 	@Override
@@ -419,13 +423,13 @@ public class StopwatchActivity extends FragmentActivity
 					(TimePickerFragment) m.findFragmentById(fragmentID);
 	        selectedTime = fragment.getSelectedTime();
 	        fragment = null;
-	        addTime(list_recent, selectedTime);
-	        reset(true);
+	        addTime(list_recent, selectedTime, true);
+	        reset();
 			break;
 		}
 	}
 
-	private void addTime(ViewGroup list, long millis) {
+	private void addTime(ViewGroup list, long millis, boolean animate) {
 		// time is already in favorites
 		if(times_favorite.contains(millis)){
 			return;
@@ -437,12 +441,13 @@ public class StopwatchActivity extends FragmentActivity
 			View v = list_recent.getChildAt(pos);
 			list_recent.removeViewAt(pos);
 			list_recent.addView(v,0);
+			times_recent.remove(pos);
+			times_recent.add(0, millis);
 			return;
 		}
 		
 		// need to create a new item
 		View item = getLayoutInflater().inflate(R.layout.time_item, null);
-		list.addView(item,0);
 		item.setTag(millis);
 		TextView value = (TextView) item.findViewById(R.id.value);
 		ImageButton favorite = (ImageButton) item.findViewById(R.id.favorite);
@@ -452,17 +457,22 @@ public class StopwatchActivity extends FragmentActivity
 		favorite.setOnClickListener(this);
 		
 		if(list.getId() == list_favorite.getId()) {
-			times_favorite.add(0, millis);
+			pos = -Collections.binarySearch(times_favorite, millis) - 1;
+			times_favorite.add(pos, millis);
+			list_favorite.addView(item, pos);
 			favorite.setImageResource(android.R.drawable.btn_star_big_on);
 		}
 		else {
-			times_recent.add(0, millis);
+			times_recent.add(0,millis);
+			list_recent.addView(item, 0);
 			favorite.setImageResource(android.R.drawable.btn_star_big_off);
 			if(list_recent.getChildCount() > maxRecentTimes) {
 				list_recent.removeViewAt(maxRecentTimes);
 				times_recent.remove(maxRecentTimes);
 			}
 		}
+
+		if(animate) animateItem(item, null, list, -1);
 	}
 
 	private void setBigClock(long millis) {
@@ -483,8 +493,8 @@ public class StopwatchActivity extends FragmentActivity
 			long endTime = startTime + selectedTime - elapsedTime;
 			boolean indefinite = mode == MODE_STOPWATCH && selectedTime <= 0;
 			
-			long now;
-			long i=0;
+			long now = System.currentTimeMillis();;
+			long i= (now - startTime) / 1000;
 			do {
 				i++;
 				now = System.currentTimeMillis();
@@ -517,7 +527,7 @@ public class StopwatchActivity extends FragmentActivity
 		
 		@Override
 		protected void onPostExecute(Void result) {
-			reset(true);
+			reset();
 		}
     	
     }

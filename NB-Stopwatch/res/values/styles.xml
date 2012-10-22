@@ -1,6 +1,6 @@
 <resources xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <style name="AppTheme" parent="android:Theme" />
+    <style name="AppTheme" parent="android:Theme.NoTitleBar" />
     
     <style name="BigClock_base">
         <item name="android:typeface">monospace</item>
